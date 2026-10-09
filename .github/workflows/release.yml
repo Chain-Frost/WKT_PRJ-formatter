@@ -1,0 +1,107 @@
+name: Versioned VSIX release
+on:
+  push:
+    tags: ['v*.*.*']
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Release verification
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Verify release tag and changelog
+        shell: bash
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          test "$GITHUB_REF_NAME" = "v$version" || { echo "Release tag must equal v$version"; exit 1; }
+          grep -Fq "## [$version]" CHANGELOG.md || { echo "Missing versioned CHANGELOG section"; exit 1; }
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Lint, compilation, unit tests
+        run: npm run check
+      - name: Source Extension Host integration tests
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            xvfb-run -a npm run test:integration
+          else
+            npm run test:integration
+          fi
+
+  package:
+    name: Build validated release asset
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Validate package source
+        run: npm run check
+      - name: Build named versioned VSIX
+        shell: bash
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          npx vsce package --out "wkt-prj-formatter-$version.vsix"
+          test -s "wkt-prj-formatter-$version.vsix"
+          unzip -l "wkt-prj-formatter-$version.vsix" | grep -F "extension/out/extension.js"
+          unzip -l "wkt-prj-formatter-$version.vsix" | grep -F "extension/syntaxes/wkt.tmLanguage.json"
+          unzip -l "wkt-prj-formatter-$version.vsix" | grep -F "extension/assets/icon.png"
+      - name: Upload the validated VSIX unchanged
+        uses: actions/upload-artifact@v4
+        with:
+          name: wkt-prj-formatter-release
+          path: wkt-prj-formatter-*.vsix
+          if-no-files-found: error
+
+  publish:
+    name: Publish matching GitHub Release
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: wkt-prj-formatter-release
+      - name: Publish exactly the previously tested artifact
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          tag="v$version"
+          asset="wkt-prj-formatter-$version.vsix"
+          test "$GITHUB_REF_NAME" = "$tag"
+          test -s "$asset"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Release already exists. Inspect it before retrying; refusing overwrite."
+            exit 1
+          fi
+          {
+            echo "## WKT / PRJ Formatter $version"
+            echo
+            echo "Install the attached VSIX in VS Code using Extensions → ... → Install from VSIX."
+            echo
+            awk -v heading="## [$version]" '
+              $0 == heading { printing=1; next }
+              printing && /^## / { exit }
+              printing { print }
+            ' CHANGELOG.md
+          } > release-notes.md
+          gh release create "$tag" "$asset" --verify-tag --title "WKT / PRJ Formatter $version" --notes-file release-notes.md
