@@ -9,6 +9,12 @@ A VS Code extension to make GIS coordinate reference system definitions readable
 - Files: `.prj`, `.wkt`, `.wkt2`.
 - **Not supported:** PROJ.4 parameter lists (`+proj=...`). They are left unchanged, as are malformed WKT files.
 
+## Real-world EPSG:28350 example files
+
+The [reference fixtures](fixtures/README.md) include published GDA94 / MGA zone 50 definitions from [EPSG.io](https://epsg.io/28350): **ESRI WKT1** (`.prj`), **OGC WKT1** (`.wkt`), and **WKT2:2019** (`.wkt2`). Open one in VS Code and run **Format Document** to see the presentation without altering the CRS tokens.
+
+The separate PROJ.4-in-`.prj` fixture documents the currently unsupported case for [#14](https://github.com/Chain-Frost/WKT_PRJ-formatter/issues/14); it must remain unchanged until that support lands. The preferred GDAL/pyproj-style presentation is tracked in [#16](https://github.com/Chain-Frost/WKT_PRJ-formatter/issues/16).
+
 ## Usage
 
 1. Open a WKT `.prj` / `.wkt` / `.wkt2` file in VS Code.
