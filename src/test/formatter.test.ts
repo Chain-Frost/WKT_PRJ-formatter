@@ -12,7 +12,7 @@ const wkt2 = 'PROJCRS["WGS 84 / UTM zone 50S",BASEGEOGCRS["WGS 84",DATUM["World 
 
 test('formats supplied ESRI WKT1 PRJ without modifying literals', () => {
   const result = formatWkt(original);
-  assert.match(result, /^PROJCS\[\n/u);
+  assert.match(result, /^PROJCS\["GDA_1994_MGA_Zone_50",\n/u);
   assert.match(result, /SPHEROID\["GRS_1980", 6378137\.0, 298\.257222101\]/u);
   assert.match(result, /PARAMETER\["Central_Meridian", 117\.0\]/u);
   assert.match(result, /GEOGCS\[/u);
@@ -21,7 +21,7 @@ test('formats supplied ESRI WKT1 PRJ without modifying literals', () => {
 
 test('supports nested WKT2 projection definitions and ID, AXIS, ORDER', () => {
   const result = formatWkt(wkt2, { maxInlineLength: 85 });
-  assert.match(result, /^PROJCRS\[\n/u);
+  assert.match(result, /^PROJCRS\["WGS 84 \/ UTM zone 50S",\n/u);
   assert.match(result, /BASEGEOGCRS\[/u);
   assert.match(result, /ORDER\[2\]/u);
   assert.match(result, /ID\["EPSG", 32750\]/u);
@@ -70,7 +70,7 @@ test('supports literal reverse solidus in WKT1 strings', () => {
 test('preserves Windows newlines, UTF-8 BOM and an ending newline', () => {
   const input = '\uFEFF' + wkt2 + '\r\n';
   const result = formatWkt(input);
-  assert.ok(result.startsWith('\uFEFFPROJCRS[\r\n'));
+  assert.ok(result.startsWith('\uFEFFPROJCRS["WGS 84 / UTM zone 50S",\r\n'));
   assert.ok(result.endsWith('\r\n'));
   assert.ok(!/(?<!\r)\n/u.test(result));
   assert.equal(formatWkt(result), result);
