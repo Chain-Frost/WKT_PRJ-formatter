@@ -37,6 +37,14 @@ jobs:
           else
             npm run test:integration
           fi
+      - name: Verify actual Restricted Mode (VS Code 1.85 and stable)
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            xvfb-run -a npm run test:untrusted
+          else
+            npm run test:untrusted
+          fi
 
   package:
     name: Build validated release asset
