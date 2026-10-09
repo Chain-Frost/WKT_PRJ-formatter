@@ -23,8 +23,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: npm
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
       - name: ESLint
         run: npm run lint
       - name: Build and unit tests
@@ -41,8 +42,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: npm
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
       - name: Revalidate and package extension
         run: npm run package:vsix
       - name: Upload packaged extension
