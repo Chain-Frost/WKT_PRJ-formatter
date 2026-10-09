@@ -57,7 +57,7 @@ test('preserves Windows newlines, UTF-8 BOM and an ending newline', () => {
 test('indents with tabs or four spaces as selected', () => {
   const input = 'PROJCS["A",GEOGCS["B",DATUM["C"]]]';
   assert.match(formatWkt(input, { indent: '\t', maxInlineLength: 40 }), /\n\tGEOGCS\[/u);
-  assert.match(formatWkt(input, { indent: '    ', maxInlineLength: 40 }), /\n    GEOGCS\[/u);
+  assert.match(formatWkt(input, { indent: '    ', maxInlineLength: 40 }), /\n {4}GEOGCS\[/u);
 });
 
 test('rejects non-WKT PROJ.4 strings rather than editing them', () => {
