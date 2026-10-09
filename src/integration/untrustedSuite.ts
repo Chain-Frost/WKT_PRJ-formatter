@@ -54,7 +54,13 @@ export async function run(): Promise<void> {
   editor.options = { tabSize: 2, insertSpaces: true };
   await vscode.window.showTextDocument(document, { preserveFocus: false, preview: false });
   await vscode.commands.executeCommand('wktPrjFormatter.formatDocument');
-  assert.equal(document.getText(), expected4.replace(/^ {8}/gmu, '    ').replace(/^ {4}(?! )/gmu, '  ').replace(/\n/gu, lineEnding));
+  const expected2 = [
+    'PROJCS["GDA94",',
+    '  GEOGCS["GDA94",',
+    '    DATUM["D"]],',
+    '  PARAMETER["x",500000]]',
+  ].join(lineEnding);
+  assert.equal(document.getText(), expected2);
   assert.equal(vscode.workspace.isTrusted, false,
     'Explicit formatting command must not prompt for or grant trust');
 
