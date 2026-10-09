@@ -2,7 +2,8 @@
  * Conservative WKT1/WKT2 formatter.
  *
  * Preserve every input string and bare token, including number spelling,
- * identifiers and case. Only whitespace between structural tokens changes.
+ * identifiers and case. Uses a GDAL/pyproj-like hierarchical presentation.
+ * Only whitespace between structural tokens changes.
  * This is a structural formatter, not a CRS validator or WKT dialect converter.
  */
 
@@ -243,22 +244,40 @@ function sourceLineEnding(source: string, tokens: readonly Token[]): string {
 function render(
   node: Node, depth: number, indent: string, lineEnding: string, width: number, tabSize: number,
 ): string {
-  const oneline = compact(node, width - depth * indentationWidth(indent, tabSize));
+  // Keep genuinely simple leaves on one line. Nested elements are always
+  // presented hierarchically, as in GDAL/pyproj's pretty WKT, even if a whole
+  // parent would technically fit within the configured width.
+  const hasChild = node.arguments.some(value => value.kind === 'node');
+  const oneline = hasChild
+    ? undefined
+    : compact(node, width - depth * indentationWidth(indent, tabSize));
   if (oneline !== undefined) {
     return oneline;
   }
 
-  const lines = node.arguments.map((value) => {
+  const closing = node.opener === '[' ? ']' : ')';
+  const first = node.arguments[0];
+  // The leading scalar (normally the element's name) remains on the opening
+  // line. A very long scalar is never split because that would change data.
+  const leadingScalar = first?.kind === 'scalar' ? first.raw : undefined;
+  const remaining = leadingScalar === undefined ? node.arguments : node.arguments.slice(1);
+  const opening = node.name + node.opener + (leadingScalar ?? '');
+
+  if (remaining.length === 0) {
+    return opening + closing;
+  }
+
+  const lines = remaining.map((value) => {
     const content = value.kind === 'scalar'
       ? value.raw
       : render(value, depth + 1, indent, lineEnding, width, tabSize);
     return indent.repeat(depth + 1) + content;
   });
 
-  const closing = node.opener === '[' ? ']' : ')';
-  return node.name + node.opener + lineEnding +
-    lines.join(',' + lineEnding) + lineEnding +
-    indent.repeat(depth) + closing;
+  // Keep closing delimiters on the last child line, including when the child
+  // is itself hierarchical. The outer caller appends commas after delimiters.
+  return opening + (leadingScalar === undefined ? '' : ',') + lineEnding +
+    lines.join(',' + lineEnding) + closing;
 }
 
 /**
@@ -272,7 +291,7 @@ export function formatWkt(source: string, options: FormatOptions = {}): string {
   const tokens = tokenize(source);
   const tree = new Parser(tokens).parse();
 
-  const indent = options.indent ?? '  ';
+  const indent = options.indent ?? '    ';
   if (!/^(?: +|\t+)$/u.test(indent)) {
     throw new Error('Indent must contain spaces or tabs only');
   }
