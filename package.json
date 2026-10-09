@@ -69,19 +69,7 @@
         "title": "Format WKT / PRJ",
         "category": "WKT / PRJ"
       }
-    ],
-    "configuration": {
-      "title": "WKT / PRJ Formatter",
-      "properties": {
-        "wktPrjFormatter.maxInlineLength": {
-          "type": "integer",
-          "default": 100,
-          "minimum": 40,
-          "maximum": 240,
-          "description": "Maximum width of a compact WKT node before its arguments are expanded across lines (including indentation)."
-        }
-      }
-    }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
