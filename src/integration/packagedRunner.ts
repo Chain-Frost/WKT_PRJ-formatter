@@ -28,13 +28,14 @@ async function main(): Promise<void> {
     }));
     writeFileSync(join(harness, 'extension.js'), 'exports.activate = () => {};\n');
 
-    const binary = await downloadAndUnzipVSCode(process.env.VSCODE_PACKAGED_VERSION ?? 'stable');
-    await runVSCodeCommand(binary, [
+    const version = process.env.VSCODE_PACKAGED_VERSION ?? 'stable';
+    const binary = await downloadAndUnzipVSCode(version);
+    await runVSCodeCommand([
       '--extensions-dir=' + extensions,
       '--user-data-dir=' + profile,
       '--install-extension', vsix,
       '--force',
-    ]);
+    ], { version });
 
     // Unlike source tests, the development extension is a separate tiny
     // harness. The target formatter must load from the VSIX installation.
