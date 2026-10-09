@@ -31,7 +31,7 @@ export async function run(): Promise<void> {
     assert.ok(data.readUInt32BE(16) >= 128 && data.readUInt32BE(20) >= 128,
       'Packaged PNG has unexpectedly small dimensions: ' + png);
   }
-  for (const path of ['src', 'fixtures', 'out/test', 'out/integration', 'node_modules']) {
+  for (const path of ['src', 'fixtures', 'out/test', 'out/integration', 'node_modules', 'scripts']) {
     assert.equal(existsSync(join(target.extensionPath, path)), false,
       'VSIX contains dev-only or source file ' + path);
   }
