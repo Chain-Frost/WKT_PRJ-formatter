@@ -91,6 +91,8 @@ After this workflow has been merged into the default branch, open **GitHub → A
 
 When the run succeeds, open its **Artifacts** section, download **`wkt-prj-formatter-vsix`**, and extract the ZIP containing the `.vsix`. In VS Code choose **Extensions → … → Install from VSIX**, select the extracted file and reload if prompted.
 
+For durable versioned downloads, see [GitHub Releases](https://github.com/Chain-Frost/WKT_PRJ-formatter/releases) and the [release procedure](docs/releases.md). Changes are recorded in [CHANGELOG.md](CHANGELOG.md). No GitHub Release is created by normal CI, PRs or manual VSIX builds.
+
 No Node.js, TypeScript, or Docker is needed on the machine **installing** this prebuilt extension. Build dependencies (including the project-local TypeScript compiler) are installed by the GitHub runner.
 
 ## Design constraints
