@@ -3,6 +3,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
 import * as vscode from 'vscode';
 import { formatWkt } from '../formatter';
+import { captureVisualEvidence } from './visualCapture';
 
 const extensionId = 'Chain-Frost.wkt-prj-formatter';
 
@@ -107,5 +108,8 @@ export async function run(): Promise<void> {
   await saved.edit(edit => edit.insert(saved.document.positionAt(saved.document.getText().length), ' '));
   assert.equal(await saved.document.save(), true);
   assert.equal(saved.document.getText(), asDocumentEol(formatWkt(raw, { indent: '    ' }), saved.document));
+  if (process.env.WKT_SCREENSHOT_DIR) {
+    await captureVisualEvidence(process.env.WKT_SCREENSHOT_DIR);
+  }
   console.log('WKT Extension Host tests passed.');
 }
