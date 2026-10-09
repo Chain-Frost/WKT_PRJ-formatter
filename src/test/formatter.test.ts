@@ -110,3 +110,57 @@ test('does not normalise quoted case, parameter numbers, or exponent notation', 
   assert.match(result, /north/u);
   assert.equal(formatWkt(result), result);
 });
+
+/**
+ * Compare the complete significant WKT character stream, rather than selected
+ * substrings. Outside quoted strings only whitespace is ignored.
+ */
+function withoutFormattingWhitespace(source: string): string {
+  let inString = false;
+  let result = '';
+  for (let index = 0; index < source.length; index += 1) {
+    const character = source[index] ?? '';
+    if (character === '"') {
+      result += character;
+      if (inString && source[index + 1] === '"') {
+        result += '"';
+        index += 1;
+      } else {
+        inString = !inString;
+      }
+    } else if (inString || !/\\s/u.test(character)) {
+      result += character;
+    }
+  }
+  assert.equal(inString, false, 'WKT fixture must end outside a quoted string');
+  return result;
+}
+
+for (const [filename, root] of [
+  ['gda94-mga-zone50.prj', 'PROJCS'],
+  ['gda94-mga-zone50-ogc.wkt', 'PROJCS'],
+  ['gda94-mga-zone50.wkt2', 'PROJCRS'],
+] as const) {
+  test('formats EPSG:28350 ' + filename + ' losslessly at multiple line widths', () => {
+    const input = readFileSync(resolve(__dirname, '../../fixtures/' + filename), 'utf8');
+    assert.ok(input.startsWith(root + '['));
+    for (const maxInlineLength of [80, 100, 120]) {
+      const output = formatWkt(input, { maxInlineLength });
+      assert.equal(
+        withoutFormattingWhitespace(output),
+        withoutFormattingWhitespace(input),
+        'all significant tokens must be preserved in ' + filename,
+      );
+      assert.equal(formatWkt(output, { maxInlineLength }), output);
+      assert.ok(output.includes('0.9996'));
+    }
+  });
+}
+
+test('preserves unsupported EPSG:28350 PROJ.4 sample for future #14 coverage', () => {
+  const input = readFileSync(
+    resolve(__dirname, '../../fixtures/gda94-mga-zone50-proj4.prj'), 'utf8',
+  );
+  assert.match(input, /^\\+proj=utm \\+zone=50 \\+south /u);
+  assert.throws(() => formatWkt(input), WktFormatError);
+});
