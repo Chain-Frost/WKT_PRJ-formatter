@@ -49,9 +49,16 @@ export function activate(context: vscode.ExtensionContext): void {
         }
       },
     }),
-    vscode.commands.registerTextEditorCommand(
+    vscode.commands.registerCommand(
       'wktPrjFormatter.formatDocument',
-      async (editor: vscode.TextEditor): Promise<void> => {
+      async (): Promise<void> => {
+        // A command can be invoked from the Command Palette while focus is
+        // outside the editor. Use the active editor rather than depending on
+        // registerTextEditorCommand's editor-focus precondition.
+        const editor = vscode.window.activeTextEditor;
+        if (editor === undefined) {
+          return;
+        }
         const tabSize = effectiveTabSize(editor.options.tabSize);
         const indent = editor.options.insertSpaces === false ? '\t' : ' '.repeat(tabSize);
         let result: string;
