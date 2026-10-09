@@ -37,7 +37,7 @@ function structuralTokens(source: string): string[] {
     } else if ('[],()'.includes(current)) {
       offset += 1;
     } else {
-      while (offset < source.length && !/[\s\[\](),"]/u.test(source[offset] ?? '')) {
+      while (offset < source.length && !/[\s[\](),"]/u.test(source[offset] ?? '')) {
         offset += 1;
       }
       assert.ok(offset > start, 'Oracle could not advance');
