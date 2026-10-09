@@ -13,7 +13,7 @@ A VS Code extension to make GIS coordinate reference system definitions readable
 
 The [reference fixtures](fixtures/README.md) include published GDA94 / MGA zone 50 definitions from [EPSG.io](https://epsg.io/28350): **ESRI WKT1** (`.prj`), **OGC WKT1** (`.wkt`), and **WKT2:2019** (`.wkt2`). Open one in VS Code and run **Format Document** to see the presentation without altering the CRS tokens.
 
-The separate PROJ.4-in-`.prj` fixture documents the currently unsupported case for [#14](https://github.com/Chain-Frost/WKT_PRJ-formatter/issues/14); it must remain unchanged until that support lands. The preferred GDAL/pyproj-style presentation is tracked in [#16](https://github.com/Chain-Frost/WKT_PRJ-formatter/issues/16).
+The separate PROJ.4-in-`.prj` fixture documents the currently unsupported case for [#14](https://github.com/Chain-Frost/WKT_PRJ-formatter/issues/14); it must remain unchanged until that support lands. The lossless hierarchical GDAL/pyproj-style presentation is implemented under [#16](https://github.com/Chain-Frost/WKT_PRJ-formatter/issues/16).
 
 ## Usage
 
@@ -33,6 +33,8 @@ Example VS Code settings:
 }
 ```
 
+**Formatting style:** GDAL/pyproj-like hierarchical WKT is the sole supported presentation and the default for both formatting commands. The leading scalar stays on its element's opening line; nested WKT elements begin on following indented lines; closing brackets remain on the last child line. Simple leaf elements stay inline when they fit. `wktPrjFormatter.maxInlineLength` (40–240, default 100) controls whether a leaf is broken across lines, including its visual indentation. Parent elements with nested children are always hierarchical. A long, indivisible quoted string or other scalar can extend beyond the configured width to preserve its exact contents. Standalone `formatWkt()` calls default to four-space indentation. The previous compact/expanded hybrid output has intentionally been replaced; this is a **presentation-only change**, not a CRS conversion. No alternate format-style setting is required.
+
 Respects the active editor's indentation width or tabs. For tabs, visual line-width calculations use the editor's effective tab size (for example 2, 4, or 8); the tab characters themselves are preserved. Direct calls to `formatWkt()` default to a visual tab size of 4. Preserves existing LF/CRLF newline style, any UTF-8 BOM, optional final newline, doubled quote escaping (as specified by WKT), keyword spelling, number precision and nested bracket style. Formatting is idempotent.
 
 The extension supports **Restricted Mode (untrusted workspaces)**. It only formats open document text and does not execute project code or external programs. To check manually, open a fresh folder in VS Code, choose **Don't Trust** at the trust prompt (or use **Workspaces: Manage Workspace Trust** to set the folder as untrusted), confirm the window indicates Restricted Mode, then open a `.prj` file and test both **Format Document** and **WKT / PRJ: Format WKT / PRJ**. Both actions should format WKT without requiring trust. This check is manual until an Extension Host integration harness is available.
@@ -45,21 +47,18 @@ Input:
 PROJCS["GDA_1994_MGA_Zone_50",GEOGCS["GCS_GDA_1994",DATUM["D_GDA_1994",SPHEROID["GRS_1980",6378137.0,298.257222101]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],PARAMETER["False_Easting",500000.0],UNIT["Meter",1.0]]
 ```
 
-Formatted:
+Formatted (GDAL-style hierarchy, 4-space indentation):
 
 ```text
-PROJCS[
-  "GDA_1994_MGA_Zone_50",
-  GEOGCS[
-    "GCS_GDA_1994",
-    DATUM["D_GDA_1994", SPHEROID["GRS_1980", 6378137.0, 298.257222101]],
-    PRIMEM["Greenwich", 0.0],
-    UNIT["Degree", 0.0174532925199433]
-  ],
-  PROJECTION["Transverse_Mercator"],
-  PARAMETER["False_Easting", 500000.0],
-  UNIT["Meter", 1.0]
-]
+PROJCS["GDA_1994_MGA_Zone_50",
+    GEOGCS["GCS_GDA_1994",
+        DATUM["D_GDA_1994",
+            SPHEROID["GRS_1980", 6378137.0, 298.257222101]],
+        PRIMEM["Greenwich", 0.0],
+        UNIT["Degree", 0.0174532925199433]],
+    PROJECTION["Transverse_Mercator"],
+    PARAMETER["False_Easting", 500000.0],
+    UNIT["Meter", 1.0]]
 ```
 
 ## Editor support
