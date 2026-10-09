@@ -74,12 +74,16 @@ Requires Node.js 22 and VS Code 1.85 or later.
 ```sh
 npm ci --no-audit --no-fund
 npm run check
+npm run test:integration
 npm run package:vsix
+npm run test:packaged -- ./wkt-prj-formatter-0.1.0.vsix
 ```
 
 Use Node.js 22 and the committed `package-lock.json` for repeatable builds. `npm ci` deliberately fails if the manifest and lockfile disagree, rather than updating dependencies silently. To update dependencies intentionally, run `npm install` (or `npm update`) and commit the resulting `package-lock.json` alongside `package.json`. Then rerun `npm ci` from a clean checkout.
 
-Press **F5** to launch an Extension Development Host. `npm test` runs the GUI-free formatter/unit suites, including an independent token-preservation oracle, exact GDAL-style sample output, deep nesting, Unicode, and CRLF/file-path tests. CI runs ESLint, compilation and tests on both `ubuntu-latest` and `windows-latest`. The Windows job exercises real Windows filesystem paths and CRLF fixtures. A single Ubuntu packaging job starts **only after both platforms pass**, runs validation again, and uploads one VSIX. Both platforms install dependencies with `npm ci` using the committed lockfile. VS Code Extension Host tests and packaged-install smoke tests remain future work.
+Press **F5** to launch an Extension Development Host. `npm test` runs the GUI-free formatter/unit suites, including the independent token oracle, exact GDAL-style formatting, deep nesting, Unicode and CRLF/path cases. `npm run test:integration` downloads and exercises VS Code **1.85.0 and current stable** in an isolated test workspace/profile, covering real language activation, provider formatting, explicit command/undo, folding and format-on-save. `npm run test:packaged -- ./wkt-prj-formatter-0.1.0.vsix` installs the **exact built VSIX** in a separate isolated extensions directory, without loading the source extension. The versioned example filename follows the current `package.json` version. Both GUI suites need a VS Code desktop runtime (and `xvfb-run -a` on headless Linux).
+
+CI uses `npm ci` and runs source tests on Ubuntu and Windows. Only after both pass does it package one candidate VSIX. Then it installs and smoke-tests that exact artifact on both platforms. **The downloadable `wkt-prj-formatter-vsix` artifact is uploaded only after those smoke tests pass.**
 
 ### Build and install from GitHub Actions
 
