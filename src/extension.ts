@@ -1,10 +1,14 @@
 import * as vscode from 'vscode';
 import { formatWkt, WktFormatError } from './formatter';
 
-function formatted(document: vscode.TextDocument, indent: string): string {
+function effectiveTabSize(value: number | string | undefined): number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value > 0 ? value : 4;
+}
+
+function formatted(document: vscode.TextDocument, indent: string, tabSize: number): string {
   const maxInlineLength = vscode.workspace.getConfiguration('wktPrjFormatter', document.uri)
     .get<number>('maxInlineLength', 100);
-  return formatWkt(document.getText(), { indent, maxInlineLength });
+  return formatWkt(document.getText(), { indent, maxInlineLength, tabSize });
 }
 
 function fullRange(document: vscode.TextDocument): vscode.Range {
@@ -22,9 +26,10 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.languages.registerDocumentFormattingEditProvider(selector, {
       provideDocumentFormattingEdits(document, options): vscode.TextEdit[] {
-        const indent = options.insertSpaces ? ' '.repeat(options.tabSize) : '\t';
+        const tabSize = effectiveTabSize(options.tabSize);
+        const indent = options.insertSpaces ? ' '.repeat(tabSize) : '\t';
         try {
-          const result = formatted(document, indent);
+          const result = formatted(document, indent, tabSize);
           if (result === document.getText()) {
             return [];
           }
@@ -41,11 +46,11 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerTextEditorCommand(
       'wktPrjFormatter.formatDocument',
       async (editor: vscode.TextEditor): Promise<void> => {
-        const tabSize = typeof editor.options.tabSize === 'number' ? editor.options.tabSize : 4;
+        const tabSize = effectiveTabSize(editor.options.tabSize);
         const indent = editor.options.insertSpaces === false ? '\t' : ' '.repeat(tabSize);
         let result: string;
         try {
-          result = formatted(editor.document, indent);
+          result = formatted(editor.document, indent, tabSize);
         } catch (error) {
           if (error instanceof WktFormatError) {
             void vscode.window.showWarningMessage('WKT / PRJ Formatter: ' + error.message);
