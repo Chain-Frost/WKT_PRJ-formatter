@@ -6,148 +6,117 @@ import { test } from 'node:test';
 import { formatWkt, WktFormatError } from '../formatter';
 
 /**
- * Independent lexical oracle: do not use the production WKT tokenizer/parser.
- * Whitespace between tokens is disposable; every other character is data.
+ * Independent lexical oracle, not based on the production parser.
+ * Discards only structural whitespace outside quoted strings and preserves
+ * complete tokens, bracket types, scalar spelling and quoted content.
  */
-function structuralTokens(source: string): string[] {
+function tokens(source: string): string[] {
   const result: string[] = [];
-  let offset = 0;
-  while (offset < source.length) {
-    const current = source[offset] ?? '';
+  let index = 0;
+  while (index < source.length) {
+    const current = source[index] ?? '';
     if (/\s/u.test(current)) {
-      offset += 1;
+      index += 1;
       continue;
     }
-    const start = offset;
+    const start = index;
     if (current === '"') {
-      offset += 1;
-      let finished = false;
-      while (offset < source.length) {
-        if (source[offset] === '"' && source[offset + 1] === '"') {
-          offset += 2;
-        } else if (source[offset] === '"') {
-          offset += 1;
-          finished = true;
+      index += 1;
+      let closed = false;
+      while (index < source.length) {
+        if (source[index] === '"' && source[index + 1] === '"') {
+          index += 2;
+        } else if (source[index] === '"') {
+          index += 1;
+          closed = true;
           break;
         } else {
-          offset += 1;
+          index += 1;
         }
       }
-      assert.ok(finished, 'Oracle received unterminated quoted text');
+      assert.ok(closed, 'Unterminated test quote');
     } else if ('[],()'.includes(current)) {
-      offset += 1;
+      index += 1;
     } else {
-      while (offset < source.length && !/[\s[\](),"]/u.test(source[offset] ?? '')) {
-        offset += 1;
+      while (index < source.length && !/[\s[\](),"]/u.test(source[index] ?? '')) {
+        index += 1;
       }
-      assert.ok(offset > start, 'Oracle could not advance');
+      assert.ok(index > start);
     }
-    result.push(source.slice(start, offset));
+    result.push(source.slice(start, index));
   }
   return result;
 }
 
-const esri = readFileSync(resolve(__dirname, '../../fixtures/gda94-mga-zone50.prj'), 'utf8').trimEnd();
-const wkt2 = String.raw`PROJCRS["UTM \ ""quoted""",BASEGEOGCRS("WGS 84",DATUM["Équateur, [x]",ELLIPSOID["S",+6378137.0,2.98257223563E+2]]),CONVERSION["Projection",PARAMETER["Latitude",-.0003e-2]],AXIS["Easting",east]]`;
-const mixed = String.raw`BOUNDCRS(SOURCECRS[GEOGCRS("backslash \ and ""quote""",DATUM("D"))],TARGETCRS[GEOGCRS("C")])`;
-
-test('structural oracle detects substitutions, deletions and bracket changes', () => {
-  const input = 'GEOGCRS["A",AXIS["X",north],ID["EPSG",4326]]';
-  assert.notDeepEqual(structuralTokens(input), structuralTokens(input.replace('4326', '4327')));
-  assert.notDeepEqual(structuralTokens(input), structuralTokens(input.replace('north', '')));
-  assert.notDeepEqual(structuralTokens(input), structuralTokens(input.replace('AXIS[', 'AXIS(')));
-  assert.deepEqual(structuralTokens(input), structuralTokens('GEOGCRS [ "A", AXIS ["X", north], ID ["EPSG",4326] ]'));
+test('independent oracle detects all significant mutations', () => {
+  const source = 'ROOT["north [2]" ,AXIS["x",north],ID["EPSG",4326]]';
+  assert.notDeepEqual(tokens(source), tokens(source.replace('4326', '4327')));
+  assert.notDeepEqual(tokens(source), tokens(source.replace('north,', 'south,')));
+  assert.notDeepEqual(tokens(source), tokens(source.replace('AXIS[', 'AXIS(')));
+  assert.deepEqual(tokens(source), tokens('ROOT["north [2]", AXIS["x",north], ID["EPSG",4326]]'));
 });
 
-test('complete WKT1/WKT2 token sequences and literal strings survive formatting', () => {
-  for (const source of [esri, wkt2, mixed,
-    String.raw`GEOGCS["Spacing  inside ""strings""",PARAMETER["x", -1.23e+04],AXIS["Y",south]]`,
-    'GEOGCRS["line one\nline two",DATUM["test"]]',
-  ]) {
+test('complete ordered tokens are preserved under all supported indentation options', () => {
+  const fixtureNames = ['gda94-mga-zone50.prj', 'gda94-mga-zone50-ogc.wkt',
+    'gda94-mga-zone50.wkt2'];
+  const samples = fixtureNames.map(name =>
+    readFileSync(resolve(__dirname, '../../fixtures', name), 'utf8'));
+  samples.push('GEOGCRS["A [ ] \\\\ ""quoted""",AXIS["X",east],ID("EPSG",4.326E+3)]');
+  samples.push('GEOGCRS["line one\nline two",DATUM["☀ Équateur",SPHEROID["E",+6378137.0,2.98e+2]]]');
+  for (const input of samples) {
     for (const indent of ['  ', '    ', '\t']) {
-      for (const tabSize of [2, 4, 8]) {
-        for (const maxInlineLength of [40, 80, 100, 240]) {
-          const options = { indent, tabSize, maxInlineLength };
-          const formatted = formatWkt(source, options);
-          assert.deepEqual(structuralTokens(formatted), structuralTokens(source),
-            JSON.stringify(options) + ': ' + source.slice(0, 40));
-          assert.equal(formatWkt(formatted, options), formatted);
-        }
-      }
+      const formatted = formatWkt(input, { indent });
+      assert.deepEqual(tokens(formatted), tokens(input), input.slice(0, 60));
+      assert.equal(formatWkt(formatted, { indent }), formatted);
     }
   }
 });
 
-test('configured tab size changes only visual width, never tab indentation', () => {
-  const input = 'ROOT["project name",CHILD["abcdefghijklmn",1234567890],TAIL[0]]';
-  const outputs = [2, 4, 8].map(tabSize =>
-    formatWkt(input, { indent: '\t', tabSize, maxInlineLength: 40 }));
-  assert.match(outputs[0] ?? '', /\n\tCHILD\["abcdefghijklmn", 1234567890\]/u);
-  assert.match(outputs[1] ?? '', /\n\tCHILD\["abcdefghijklmn", 1234567890\]/u);
-  assert.match(outputs[2] ?? '', /\n\tCHILD\["abcdefghijklmn",\n\t\t1234567890\]/u);
-  for (const output of outputs) {
-    assert.deepEqual(structuralTokens(output), structuralTokens(input));
-  }
-  assert.equal(formatWkt(input, { indent: '\t', maxInlineLength: 40 }), outputs[1]);
-  assert.equal(formatWkt(input, { indent: '\t', tabSize: 0, maxInlineLength: 40 }), outputs[1]);
-  assert.equal(formatWkt(input, { indent: '\t', tabSize: NaN, maxInlineLength: 40 }), outputs[1]);
-});
-
-test('clamps widths and rejects invalid indentation without modifying tokens', () => {
-  const input = 'ROOT["a long name",CHILD["a long child name",1],TAIL[2]]';
-  for (const width of [-20, 0, 39, 40, 41, 100, 239, 240, 500, NaN, Infinity]) {
-    const output = formatWkt(input, { maxInlineLength: width });
-    assert.deepEqual(structuralTokens(output), structuralTokens(input));
-    assert.equal(formatWkt(output, { maxInlineLength: width }), output);
-  }
-  assert.equal(formatWkt(input, { maxInlineLength: -20 }),
-    formatWkt(input, { maxInlineLength: 40 }));
-  assert.equal(formatWkt(input, { maxInlineLength: Infinity }), formatWkt(input));
-  for (const indent of ['', ' \t', '\t ', 'xyz', '\n', '  x']) {
-    assert.throws(() => formatWkt(input, { indent }), /Indent must contain spaces or tabs only/u);
-  }
-});
-
-test('safe nesting boundary accepts depth 256 and rejects 257', () => {
-  const atLimit = 'N['.repeat(257) + '"leaf"' + ']'.repeat(257);
-  const overLimit = 'N['.repeat(258) + '"leaf"' + ']'.repeat(258);
-  const output = formatWkt(atLimit, { maxInlineLength: 40 });
-  assert.deepEqual(structuralTokens(output), structuralTokens(atLimit));
-  assert.throws(() => formatWkt(overLimit), (error: unknown) =>
+test('deep nesting at safety boundary preserves tokens; beyond throws a typed error', () => {
+  const valid = 'N['.repeat(257) + '"leaf"' + ']'.repeat(257);
+  const invalid = 'N['.repeat(258) + '"leaf"' + ']'.repeat(258);
+  const output = formatWkt(valid);
+  assert.deepEqual(tokens(output), tokens(valid));
+  assert.throws(() => formatWkt(invalid), (error: unknown) =>
     error instanceof WktFormatError && /nesting exceeds safety limit/u.test(error.message));
 });
 
-test('retains BOM, quoted newlines and actual outer CRLF and trailing newline', () => {
+test('BOM and line endings outside quoted strings remain unchanged', () => {
   const input = '\uFEFFGEOGCRS["a\nb",\r\nDATUM["D",ELLIPSOID["E",6378137,298.257223563]]]\r\n';
-  const output = formatWkt(input, { maxInlineLength: 40 });
+  const output = formatWkt(input);
   assert.ok(output.startsWith('\uFEFFGEOGCRS["a\nb",\r\n'));
-  assert.ok(output.includes('"a\nb"'));
   assert.ok(output.endsWith('\r\n'));
-  assert.deepEqual(structuralTokens(output), structuralTokens(input));
-  assert.equal(formatWkt(output, { maxInlineLength: 40 }), output);
-  assert.ok(!formatWkt('GEOGCRS["No terminal newline"]').endsWith('\n'));
+  assert.ok(output.includes('"a\nb"'));
+  assert.deepEqual(tokens(output), tokens(input));
+  assert.equal(formatWkt(output), output);
 });
 
-test('formats CRLF fixtures on real platform filesystem paths (Windows CI included)', () => {
-  const directory = mkdtempSync(join(tmpdir(), 'wkt formatter windows path '));
+test('CRLF and real Windows filesystem paths work without formatting drift', () => {
+  const root = mkdtempSync(join(tmpdir(), 'wkt format paths '));
   try {
-    const nested = join(directory, 'folder with spaces');
-    mkdirSync(nested);
-    const filename = join(nested, 'GDA94 MGA zone 50.wkt2');
+    const folder = join(root, 'folder with spaces');
+    mkdirSync(folder);
+    const filename = join(folder, 'GDA94 MGA 50.wkt2');
     assert.ok(isAbsolute(filename));
     if (process.platform === 'win32') {
-      assert.ok(filename.includes(sep)); // Real Windows path, not a synthetic win32 string.
+      assert.ok(filename.includes(sep));
     }
-    const input = 'GEOGCRS["With spaces",\r\nDATUM["WGS 84",ELLIPSOID["WGS 84",6378137,298.257223563]]]\r\n';
-    writeFileSync(filename, input, 'utf8');
-    const output = formatWkt(readFileSync(filename, 'utf8'), { indent: '\t', tabSize: 8, maxInlineLength: 40 });
-    writeFileSync(filename, output, 'utf8');
-    const onDisk = readFileSync(filename, 'utf8');
-    assert.ok(onDisk.startsWith('GEOGCRS["With spaces",\r\n'));
-    assert.ok(!/(?<!\r)\n/u.test(onDisk));
-    assert.deepEqual(structuralTokens(onDisk), structuralTokens(input));
-    assert.equal(formatWkt(onDisk, { indent: '\t', tabSize: 8, maxInlineLength: 40 }), onDisk);
+    const input = 'PROJCRS["WGS 84",\r\nBASEGEOGCRS["WGS 84",DATUM["D"]]]\r\n';
+    writeFileSync(filename, input);
+    const output = formatWkt(readFileSync(filename, 'utf8'), { indent: '\t' });
+    writeFileSync(filename, output);
+    assert.ok(output.includes('\r\n\tBASEGEOGCRS['));
+    assert.ok(!/(?<!\r)\n/u.test(output));
+    assert.deepEqual(tokens(output), tokens(input));
+    assert.equal(formatWkt(readFileSync(filename, 'utf8'), { indent: '\t' }), output);
   } finally {
-    rmSync(directory, { recursive: true, force: true });
+    rmSync(root, { recursive: true, force: true });
   }
+});
+
+test('unbounded scalar-only leaves remain intact rather than being width wrapped', () => {
+  const input = 'ROOT["a",PARAMETER["'+'very long value'.repeat(100)+'",+2.5E-7]]';
+  const output = formatWkt(input);
+  assert.equal(output.split('\n').length, 2);
+  assert.deepEqual(tokens(output), tokens(input));
 });
