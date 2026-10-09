@@ -79,7 +79,8 @@
     "test": "npm run compile && node --test out/test/*.test.js",
     "check": "npm run lint && npm test",
     "package:vsix": "npm run check && npx vsce package",
-    "test:integration": "npm run compile && node out/integration/runner.js"
+    "test:integration": "npm run compile && node out/integration/runner.js",
+    "test:packaged": "npm run compile && node out/integration/packagedRunner.js"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
