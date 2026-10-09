@@ -1,0 +1,99 @@
+{
+  "name": "wkt-prj-formatter",
+  "displayName": "WKT / PRJ Formatter",
+  "publisher": "Chain-Frost",
+  "description": "Readable, lossless WKT1 and WKT2 formatting for GIS .prj and .wkt files.",
+  "version": "0.1.0",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Chain-Frost/WKT_PRJ-formatter.git"
+  },
+  "homepage": "https://github.com/Chain-Frost/WKT_PRJ-formatter#readme",
+  "bugs": {
+    "url": "https://github.com/Chain-Frost/WKT_PRJ-formatter/issues"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Formatters",
+    "Programming Languages"
+  ],
+  "keywords": [
+    "wkt",
+    "wkt2",
+    "wkt1",
+    "prj",
+    "coordinate reference system",
+    "projection",
+    "gis",
+    "crs"
+  ],
+  "activationEvents": [
+    "onLanguage:wkt",
+    "onCommand:wktPrjFormatter.formatDocument"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "wkt",
+        "aliases": [
+          "WKT / PRJ",
+          "wkt"
+        ],
+        "extensions": [
+          ".prj",
+          ".wkt",
+          ".wkt2"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "wkt",
+        "scopeName": "source.wkt",
+        "path": "./syntaxes/wkt.tmLanguage.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "wktPrjFormatter.formatDocument",
+        "title": "Format WKT / PRJ",
+        "category": "WKT / PRJ"
+      }
+    ],
+    "configuration": {
+      "title": "WKT / PRJ Formatter",
+      "properties": {
+        "wktPrjFormatter.maxInlineLength": {
+          "type": "integer",
+          "default": 100,
+          "minimum": 40,
+          "maximum": 240,
+          "description": "Maximum width of a compact WKT node before its arguments are expanded across lines (including indentation)."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p .",
+    "watch": "tsc -watch -p .",
+    "lint": "eslint src",
+    "test": "npm run compile && node --test out/test/*.test.js",
+    "check": "npm run lint && npm test",
+    "package:vsix": "npm run check && npx vsce package"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@types/node": "^22.0.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.0.0",
+    "eslint": "^9.0.0",
+    "typescript": "^5.6.3",
+    "typescript-eslint": "^8.0.0"
+  }
+}
