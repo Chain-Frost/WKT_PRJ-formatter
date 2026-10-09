@@ -84,7 +84,7 @@ test('configured tab size changes only visual width, never tab indentation', () 
     formatWkt(input, { indent: '\t', tabSize, maxInlineLength: 40 }));
   assert.match(outputs[0] ?? '', /\n\tCHILD\["abcdefghijklmn", 1234567890\]/u);
   assert.match(outputs[1] ?? '', /\n\tCHILD\["abcdefghijklmn", 1234567890\]/u);
-  assert.match(outputs[2] ?? '', /\n\tCHILD\[\n\t\t"abcdefghijklmn"/u);
+  assert.match(outputs[2] ?? '', /\n\tCHILD\["abcdefghijklmn",\n\t\t1234567890\]/u);
   for (const output of outputs) {
     assert.deepEqual(structuralTokens(output), structuralTokens(input));
   }
@@ -120,7 +120,7 @@ test('safe nesting boundary accepts depth 256 and rejects 257', () => {
 test('retains BOM, quoted newlines and actual outer CRLF and trailing newline', () => {
   const input = '\uFEFFGEOGCRS["a\nb",\r\nDATUM["D",ELLIPSOID["E",6378137,298.257223563]]]\r\n';
   const output = formatWkt(input, { maxInlineLength: 40 });
-  assert.ok(output.startsWith('\uFEFFGEOGCRS[\r\n'));
+  assert.ok(output.startsWith('\uFEFFGEOGCRS["a\nb",\r\n'));
   assert.ok(output.includes('"a\nb"'));
   assert.ok(output.endsWith('\r\n'));
   assert.deepEqual(structuralTokens(output), structuralTokens(input));
@@ -143,7 +143,7 @@ test('formats CRLF fixtures on real platform filesystem paths (Windows CI includ
     const output = formatWkt(readFileSync(filename, 'utf8'), { indent: '\t', tabSize: 8, maxInlineLength: 40 });
     writeFileSync(filename, output, 'utf8');
     const onDisk = readFileSync(filename, 'utf8');
-    assert.ok(onDisk.startsWith('GEOGCRS[\r\n'));
+    assert.ok(onDisk.startsWith('GEOGCRS["With spaces",\r\n'));
     assert.ok(!/(?<!\r)\n/u.test(onDisk));
     assert.deepEqual(structuralTokens(onDisk), structuralTokens(input));
     assert.equal(formatWkt(onDisk, { indent: '\t', tabSize: 8, maxInlineLength: 40 }), onDisk);
