@@ -54,7 +54,7 @@ export async function run(): Promise<void> {
   editor.options = { tabSize: 2, insertSpaces: true };
   await vscode.window.showTextDocument(document, { preserveFocus: false, preview: false });
   await vscode.commands.executeCommand('wktPrjFormatter.formatDocument');
-  assert.equal(document.getText(), expected4.replace(/^ {4}/gmu, '  ').replace(/^ {8}/gmu, '    ').replace(/\n/gu, lineEnding));
+  assert.equal(document.getText(), expected4.replace(/^ {8}/gmu, '    ').replace(/^ {4}(?! )/gmu, '  ').replace(/\n/gu, lineEnding));
   assert.equal(vscode.workspace.isTrusted, false,
     'Explicit formatting command must not prompt for or grant trust');
 
