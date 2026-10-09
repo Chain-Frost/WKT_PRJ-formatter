@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { downloadAndUnzipVSCode, runTests } from '@vscode/test-electron';
@@ -10,6 +10,8 @@ async function main(): Promise<void> {
   for (const version of versions) {
     const directory = mkdtempSync(join(tmpdir(), 'wkt-vscode-host-'));
     try {
+      const workspace = join(directory, 'workspace');
+      mkdirSync(workspace);
       const executable = await downloadAndUnzipVSCode(version);
       console.log('Running WKT Extension Host integration tests against VS Code ' + version);
       await runTests({
@@ -17,7 +19,7 @@ async function main(): Promise<void> {
         extensionDevelopmentPath: resolve(__dirname, '../..'),
         extensionTestsPath: resolve(__dirname, 'suite'),
         launchArgs: [
-          join(directory, 'workspace'),
+          workspace,
           '--user-data-dir=' + join(directory, 'profile'),
           '--extensions-dir=' + join(directory, 'extensions'),
           '--disable-updates',
