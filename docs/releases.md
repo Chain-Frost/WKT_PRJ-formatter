@@ -19,7 +19,10 @@ After a successful run, open GitHub **Releases** and download `wkt-prj-formatter
 
 ## Retry-safe workflow artifacts
 
-The candidate VSIX artifact is named `wkt-prj-formatter-release-<run_attempt>` using GitHub's `github.run_attempt` value. Every package upload and both Linux/Windows download jobs use the **same current attempt name**. If a tagged workflow partially fails, **Re-run all jobs** starts a new attempt with a new artifact name rather than trying to overwrite a previous immutable `upload-artifact@v4` artifact. Use **Re-run all jobs** rather than **Re-run failed jobs** when recovering after the package step: the latter may skip the packaging job but increment `run_attempt`, leaving no artifact with the new attempt-specific name. This workflow intentionally prioritizes reliable full-attempt retries. The release publisher still rejects a pre-existing GitHub Release for the tag; workflow artifact retries never authorize replacing a published release.
+The candidate artifact uses the stable name `wkt-prj-formatter-release`. The package job sets `overwrite: true` when uploading this GitHub Actions artifact: **Re-run all jobs** rebuilds the validated VSIX and replaces the previous attempt's artifact without failing on an immutable duplicate name. **Re-run failed jobs** can reuse the already validated artifact when the package job succeeded previously. The Linux and Windows smoke jobs and release publisher download the same artifact by its stable name.
+
+Overwriting the intermediate GitHub Actions artifact is distinct from overwriting a public GitHub Release. The publisher still refuses to overwrite an existing GitHub Release or its attached assets.
+
 
 ## Recovering from failed releases
 
