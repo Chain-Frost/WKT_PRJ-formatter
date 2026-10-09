@@ -11,6 +11,10 @@ Notable changes to the WKT / PRJ Formatter extension are recorded here. This doc
 - Manual Actions workflow dispatch can build a downloadable VSIX without local Node.js or TypeScript (#3).
 
 ### Added
+- Source Extension Host integration tests covering VS Code 1.85.0 and current stable, normal activation, provider and command formatting, undo, format-on-save and folding (#2).
+- Installed-VSIX smoke tests on both Ubuntu and Windows; the public downloadable artifact is uploaded only if both pass (#5).
+- Version-tagged release workflow, matching-version changelog validation, and release safety/retry documentation (#8).
+- Original VS Code globe/bracket icon and README before-and-after WKT illustration in packaged-compatible PNG format (#13).
 - Bracket-aware folding for nested WKT1/WKT2 elements (#11).
 - TextMate tokenization regression tests for the packaged WKT grammar (#12).
 - An independent formatter token-preservation oracle and boundary, newline and real-path regression tests (#6).
