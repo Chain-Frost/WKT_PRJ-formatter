@@ -62,6 +62,9 @@ export async function run(): Promise<void> {
   const raw = 'PROJCS["GDA94",GEOGCS["GDA94",DATUM["datum"]],PARAMETER["east",500000]]';
   const editor = await openFixture('two-space.wkt', raw);
   editor.options = { insertSpaces: true, tabSize: 2 };
+  await vscode.window.showTextDocument(editor.document, { preserveFocus: false, preview: false });
+  assert.equal(vscode.window.activeTextEditor?.document.uri.toString(), editor.document.uri.toString(),
+    'The command requires a visible active WKT editor');
   await vscode.commands.executeCommand('wktPrjFormatter.formatDocument');
   assert.equal(editor.document.getText(), formatWkt(raw, { indent: '  ' }));
   await vscode.commands.executeCommand('undo');
