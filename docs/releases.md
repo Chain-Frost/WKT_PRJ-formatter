@@ -17,6 +17,10 @@ The release workflow validates source on Ubuntu and Windows with Node.js 22 and 
 
 After a successful run, open GitHub **Releases** and download `wkt-prj-formatter-MAJOR.MINOR.PATCH.vsix`. In VS Code open **Extensions → ... → Install from VSIX**, select the downloaded asset and reload VS Code if prompted.
 
+## Retry-safe workflow artifacts
+
+The candidate VSIX artifact is named `wkt-prj-formatter-release-<run_attempt>` using GitHub's `github.run_attempt` value. Every package upload and both Linux/Windows download jobs use the **same current attempt name**. If a tagged workflow partially fails, **Re-run all jobs** starts a new attempt with a new artifact name rather than trying to overwrite a previous immutable `upload-artifact@v4` artifact. Re-running only failed jobs is also supported: jobs that reuse an already uploaded artifact retain the current attempt's matching files when GitHub's re-run semantics permit it. The release publisher still rejects a pre-existing GitHub Release for the tag; workflow artifact retries never authorize replacing a published release.
+
 ## Recovering from failed releases
 
 If failure occurs before GitHub Release creation, fix the source problem in a new commit and use a **new appropriate version/tag**, or rerun the failed tag workflow after verifying no code/tag mismatch. Avoid retargeting tags that have already been distributed.
