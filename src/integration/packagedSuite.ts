@@ -52,8 +52,8 @@ export async function run(): Promise<void> {
     }
     assert.ok(await vscode.workspace.applyEdit(edit));
     assert.equal(document.getText(), formatWkt(source, { indent: '    ' }));
-    assert.deepEqual(await vscode.commands.executeCommand<vscode.TextEdit[]>(
-      'vscode.executeFormatDocumentProvider', uri, { insertSpaces: true, tabSize: 4 }), []);
+    assert.deepEqual((await vscode.commands.executeCommand<vscode.TextEdit[]>(
+      'vscode.executeFormatDocumentProvider', uri, { insertSpaces: true, tabSize: 4 })) ?? [], []);
   }
 
   const raw = 'PROJCS["GDA94",GEOGCS["GDA94",DATUM["B"]],PARAMETER["x",1]]';
