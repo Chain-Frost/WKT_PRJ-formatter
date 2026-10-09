@@ -2,7 +2,9 @@
 
 A VS Code extension to make GIS coordinate reference system definitions readable without changing their values.
 
-![WKT / PRJ Formatter before-and-after illustration: a single-line GDA94 projected CRS shown as a hierarchical GDAL-style WKT tree, preserving the definition's tokens.](assets/wkt-before-after.png)
+![Actual VS Code WKT1 before and after formatting: compact GDA94 / MGA zone 50 definition on the left and lossless GDAL-style hierarchy on the right, in the default dark theme.](assets/screenshots/wkt-before-after-dark.png)
+
+Captured from the extension running in VS Code. See the same WKT comparison in the [default light theme](assets/screenshots/wkt-before-after-light.png).
 
 ## Supported formats
 
