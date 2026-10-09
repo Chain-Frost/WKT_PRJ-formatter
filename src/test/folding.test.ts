@@ -44,7 +44,7 @@ test('single-line nodes are not folding regions', () => {
 });
 
 test('handles mixed CRLF, LF and CR, plus literal newlines in strings', () => {
-  const source = 'GEOGCRS[\r\n  "Two\nlines with ] and \\ \",\r  DATUM(\n    "D"\n  )\r\n]';
+  const source = 'GEOGCRS[\r\n  "Two\nlines with ] and \\ ",\r  DATUM(\n    "D"\n  )\r\n]';
   assert.deepEqual(findWktFolds(source), [
     { start: 0, end: 6 },
     { start: 3, end: 5 },
