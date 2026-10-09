@@ -6,10 +6,8 @@ function effectiveTabSize(value: number | string | undefined): number {
   return typeof value === 'number' && Number.isSafeInteger(value) && value > 0 ? value : 4;
 }
 
-function formatted(document: vscode.TextDocument, indent: string, tabSize: number): string {
-  const maxInlineLength = vscode.workspace.getConfiguration('wktPrjFormatter', document.uri)
-    .get<number>('maxInlineLength', 100);
-  return formatWkt(document.getText(), { indent, maxInlineLength, tabSize });
+function formatted(document: vscode.TextDocument, indent: string): string {
+  return formatWkt(document.getText(), { indent });
 }
 
 function fullRange(document: vscode.TextDocument): vscode.Range {
@@ -37,7 +35,7 @@ export function activate(context: vscode.ExtensionContext): void {
         const tabSize = effectiveTabSize(options.tabSize);
         const indent = options.insertSpaces ? ' '.repeat(tabSize) : '\t';
         try {
-          const result = formatted(document, indent, tabSize);
+          const result = formatted(document, indent);
           if (result === document.getText()) {
             return [];
           }
@@ -58,7 +56,7 @@ export function activate(context: vscode.ExtensionContext): void {
         const indent = editor.options.insertSpaces === false ? '\t' : ' '.repeat(tabSize);
         let result: string;
         try {
-          result = formatted(editor.document, indent, tabSize);
+          result = formatted(editor.document, indent);
         } catch (error) {
           if (error instanceof WktFormatError) {
             void vscode.window.showWarningMessage('WKT / PRJ Formatter: ' + error.message);
