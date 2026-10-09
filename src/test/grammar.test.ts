@@ -9,7 +9,7 @@ const grammarFile = resolve(__dirname, '../../syntaxes/wkt.tmLanguage.json');
 
 async function packagedGrammar(): Promise<IGrammar> {
   const wasm = readFileSync(require.resolve('vscode-oniguruma/release/onig.wasm'));
-  await loadWASM(wasm);
+  await loadWASM(Uint8Array.from(wasm).buffer);
   const registry = new Registry({
     onigLib: Promise.resolve({
       createOnigScanner: (sources: string[]) => new OnigScanner(sources),
