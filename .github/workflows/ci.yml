@@ -55,7 +55,55 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Revalidate and package extension
         run: npm run package:vsix
-      - name: Upload packaged extension
+      - name: Upload candidate VSIX (not public until both smoke tests pass)
+        uses: actions/upload-artifact@v4
+        with:
+          name: wkt-prj-formatter-candidate
+          path: '*.vsix'
+          if-no-files-found: error
+
+  packaged-smoke:
+    name: Test installed VSIX
+    needs: package
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Download exact candidate VSIX
+        uses: actions/download-artifact@v4
+        with:
+          name: wkt-prj-formatter-candidate
+      - name: Smoke-test installed VSIX (isolated profile, workspace, extensions)
+        shell: bash
+        run: |
+          shopt -s nullglob
+          vsix=(./*.vsix)
+          test "${#vsix[@]}" -eq 1 || { echo "Expected one candidate VSIX"; exit 1; }
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            xvfb-run -a npm run test:packaged -- "${vsix[0]}"
+          else
+            npm run test:packaged -- "${vsix[0]}"
+          fi
+
+  publish-artifact:
+    name: Upload tested downloadable VSIX
+    needs: packaged-smoke
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download validated candidate unchanged
+        uses: actions/download-artifact@v4
+        with:
+          name: wkt-prj-formatter-candidate
+      - name: Upload tested VSIX
         uses: actions/upload-artifact@v4
         with:
           name: wkt-prj-formatter-vsix
