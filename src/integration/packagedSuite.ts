@@ -25,7 +25,7 @@ export async function run(): Promise<void> {
   const readme = readFileSync(join(target.extensionPath, 'README.md'), 'utf8');
   assert.match(readme, /!\[[^\]]+\]\(assets\/wkt-before-after\.png\)/u);
   for (const png of ['assets/icon.png', 'assets/wkt-before-after.png']) {
-    const data = readFileSync(join(target.extensionPath, png));
+    const data: Buffer = readFileSync(join(target.extensionPath, png));
     assert.equal(data.subarray(0, 8).toString('hex'), '89504e470d0a1a0a',
       'Packaged asset is not a PNG: ' + png);
     assert.ok(data.readUInt32BE(16) >= 128 && data.readUInt32BE(20) >= 128,
