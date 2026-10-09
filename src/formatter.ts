@@ -40,6 +40,8 @@ export interface FormatOptions {
   readonly indent?: string;
   /** Maximum length of a node rendered on one line, including indentation. */
   readonly maxInlineLength?: number;
+  /** Visual columns per indentation tab (defaults to 4 for standalone calls). */
+  readonly tabSize?: number;
 }
 
 const IDENTIFIER = /^[A-Za-z_][A-Za-z_0-9]*$/u;
@@ -219,12 +221,29 @@ function compact(node: Node, maxWidth: number): string | undefined {
   return text + (node.opener === '[' ? ']' : ')');
 }
 
-function indentationWidth(indent: string): number {
-  return Array.from(indent).reduce((width, character) => width + (character === '\t' ? 4 : 1), 0);
+function indentationWidth(indent: string, tabSize: number): number {
+  return Array.from(indent).reduce((width, character) => width + (character === '\t' ? tabSize : 1), 0);
 }
 
-function render(node: Node, depth: number, indent: string, lineEnding: string, width: number): string {
-  const oneline = compact(node, width - depth * indentationWidth(indent));
+function sourceLineEnding(source: string, tokens: readonly Token[]): string {
+  // Prefer layout whitespace. A newline inside a quoted WKT name is data,
+  // and may differ from the document's actual line-ending convention.
+  let previousEnd = 0;
+  for (const token of tokens) {
+    const separator = source.slice(previousEnd, token.offset).match(/\r\n|\n|\r/u);
+    if (separator !== null) {
+      return separator[0];
+    }
+    previousEnd = token.offset + token.raw.length;
+  }
+  return source.slice(previousEnd).match(/\r\n|\n|\r/u)?.[0] ??
+    source.match(/\r\n|\n|\r/u)?.[0] ?? '\n';
+}
+
+function render(
+  node: Node, depth: number, indent: string, lineEnding: string, width: number, tabSize: number,
+): string {
+  const oneline = compact(node, width - depth * indentationWidth(indent, tabSize));
   if (oneline !== undefined) {
     return oneline;
   }
@@ -232,7 +251,7 @@ function render(node: Node, depth: number, indent: string, lineEnding: string, w
   const lines = node.arguments.map((value) => {
     const content = value.kind === 'scalar'
       ? value.raw
-      : render(value, depth + 1, indent, lineEnding, width);
+      : render(value, depth + 1, indent, lineEnding, width, tabSize);
     return indent.repeat(depth + 1) + content;
   });
 
@@ -263,9 +282,13 @@ export function formatWkt(source: string, options: FormatOptions = {}): string {
     ? Math.max(40, Math.min(240, Math.trunc(requestedWidth)))
     : 100;
 
-  const lineEnding = source.match(/\r\n|\n|\r/u)?.[0] ?? '\n';
-  const finalNewline = /(?:\r\n|\n|\r)$/u.test(source) ? lineEnding : '';
+  const requestedTabSize = options.tabSize ?? 4;
+  const tabSize = Number.isSafeInteger(requestedTabSize) && requestedTabSize > 0
+    ? requestedTabSize : 4;
+
+  const lineEnding = sourceLineEnding(source, tokens);
+  const finalNewline = source.match(/(?:\r\n|\n|\r)$/u)?.[0] ?? '';
   const bom = source.startsWith('\uFEFF') ? '\uFEFF' : '';
 
-  return bom + render(tree, 0, indent, lineEnding, width) + finalNewline;
+  return bom + render(tree, 0, indent, lineEnding, width, tabSize) + finalNewline;
 }
