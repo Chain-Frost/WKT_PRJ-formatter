@@ -4,65 +4,84 @@ import { resolve } from 'node:path';
 import { test } from 'node:test';
 import { formatWkt } from '../formatter';
 
-const sample = 'PROJCS["GDA_1994_MGA_Zone_50",GEOGCS["GCS_GDA_1994",DATUM["D_GDA_1994",SPHEROID["GRS_1980",6378137.0,298.257222101]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],PARAMETER["False_Easting",500000.0],UNIT["Meter",1.0]]';
+/** Exact layout requested in issue #16 comments, not the old width-based hybrid. */
+const desired = [
+  'PROJCS["GDA94 / MGA zone 50",',
+  '    GEOGCS["GDA94",',
+  '        DATUM["Geocentric_Datum_of_Australia_1994",',
+  '            SPHEROID["GRS 1980",6378137,298.257222101,',
+  '                AUTHORITY["EPSG","7019"]],',
+  '            AUTHORITY["EPSG","6283"]],',
+  '        PRIMEM["Greenwich",0],',
+  '        UNIT["Degree",0.0174532925199433]],',
+  '    PROJECTION["Transverse_Mercator"],',
+  '    PARAMETER["false_easting",500000],',
+  '    PARAMETER["scale_factor",1],',
+  '    UNIT["metre",1,',
+  '        AUTHORITY["EPSG","9001"]],',
+  '    AXIS["Easting",EAST],',
+  '    AXIS["Northing",NORTH]]',
+].join('\n');
 
-test('GDAL-style hierarchical layout is the only default; nested closing brackets follow child', () => {
-  const expected = [
-    'PROJCS["GDA_1994_MGA_Zone_50",',
-    '    GEOGCS["GCS_GDA_1994",',
-    '        DATUM["D_GDA_1994",',
-    '            SPHEROID["GRS_1980", 6378137.0, 298.257222101]],',
-    '        PRIMEM["Greenwich", 0.0],',
-    '        UNIT["Degree", 0.0174532925199433]],',
-    '    PROJECTION["Transverse_Mercator"],',
-    '    PARAMETER["False_Easting", 500000.0],',
-    '    UNIT["Meter", 1.0]]',
-  ].join('\n');
-  assert.equal(formatWkt(sample), expected);
-  assert.equal(formatWkt(expected), expected);
-});
-
-test('indentation and tab size follow editor choices, without altering bracket placement', () => {
-  for (const indent of ['  ', '    ', '\t']) {
-    for (const tabSize of [2, 4, 8]) {
-      const options = { indent, tabSize, maxInlineLength: 100 };
-      const output = formatWkt(sample, options);
-      assert.ok(output.startsWith('PROJCS["GDA_1994_MGA_Zone_50",\n' + indent + 'GEOGCS['));
-      assert.ok(output.endsWith('UNIT["Meter", 1.0]]'));
-      assert.equal(formatWkt(output, options), output);
+function flattenLayout(source: string): string {
+  let quoted = false;
+  let output = '';
+  for (let i = 0; i < source.length; i += 1) {
+    const ch = source[i] ?? '';
+    if (ch === '"') {
+      output += ch;
+      if (quoted && source[i + 1] === '"') {
+        output += '"';
+        i += 1;
+      } else {
+        quoted = !quoted;
+      }
+    } else if (quoted || !/\s/u.test(ch)) {
+      output += ch;
     }
   }
+  return output;
+}
+
+test('matches precise GDAL/pyproj hierarchy and comma spacing requested by user', () => {
+  const input = flattenLayout(desired);
+  assert.equal(formatWkt(input), desired);
+  assert.equal(formatWkt(desired), desired);
 });
 
-test('line width keeps short leaves together and wraps long scalar-only leaves', () => {
-  const input = 'ROOT["Root",CHILD["a rather long value",1234567890],TAIL["z"]]';
-  const narrow = formatWkt(input, { maxInlineLength: 40 });
-  const wide = formatWkt(input, { maxInlineLength: 100 });
-  assert.match(narrow, /CHILD\["a rather long value",\n {8}1234567890\]/u);
-  assert.match(wide, /CHILD\["a rather long value", 1234567890\]/u);
-  assert.equal(formatWkt(narrow, { maxInlineLength: 40 }), narrow);
-  assert.equal(formatWkt(wide, { maxInlineLength: 100 }), wide);
+test('does not limit leaf line lengths or split scalar values', () => {
+  const leaf = 'LEAF["' + 'long scalar value '.repeat(30) + '",1234567890]';
+  const input = 'ROOT["x",' + leaf + ',CHILD["y"]]';
+  const result = formatWkt(input);
+  assert.ok(result.includes('    ' + leaf));
+  assert.equal(formatWkt(result), result);
 });
 
-test('handles mixed WKT1/WKT2 brackets, parent-child endings and quoted delimiters', () => {
-  const input = String.raw`BOUNDCRS(SOURCECRS[GEOGCRS("A ] \\ ""quote""",DATUM["B"])],TARGETCRS(GEOGCRS["C",DATUM("D")]))`;
-  const output = formatWkt(input, { maxInlineLength: 80 });
-  assert.ok(output.startsWith('BOUNDCRS(\n'));
-  assert.match(output, /DATUM\["B"\]\)\],/u);
-  assert.match(output, /DATUM\("D"\)\]\)\)/u);
-  assert.equal(formatWkt(output, { maxInlineLength: 80 }), output);
-});
-
-test('real EPSG:28350 ESRI WKT1, OGC WKT1 and WKT2 use hierarchical output', () => {
-  for (const filename of [
-    'gda94-mga-zone50.prj',
-    'gda94-mga-zone50-ogc.wkt',
-    'gda94-mga-zone50.wkt2',
-  ]) {
-    const source = readFileSync(resolve(__dirname, '../../fixtures', filename), 'utf8');
-    const output = formatWkt(source, { indent: '    ', maxInlineLength: 100 });
-    assert.match(output, /^PROJ(?:CS|CRS)\["[^"\r\n]+",\r?\n/u);
-    assert.ok(output.split(/\r?\n/u).length > 5, filename);
-    assert.equal(formatWkt(output, { indent: '    ', maxInlineLength: 100 }), output);
+test('indentation settings adjust only hierarchy; style remains the same', () => {
+  for (const indent of ['  ', '    ', '\t']) {
+    const text = formatWkt(flattenLayout(desired), { indent });
+    assert.ok(text.startsWith('PROJCS["GDA94 / MGA zone 50",\n' + indent + 'GEOGCS['));
+    assert.ok(text.includes('\n' + indent.repeat(3) + 'SPHEROID['));
+    assert.equal(formatWkt(text, { indent }), text);
   }
+});
+
+test('real EPSG:28350 ESRI/OGC WKT1 and WKT2 use the same lossless style', () => {
+  for (const name of ['gda94-mga-zone50.prj', 'gda94-mga-zone50-ogc.wkt',
+    'gda94-mga-zone50.wkt2']) {
+    const input = readFileSync(resolve(__dirname, '../../fixtures', name), 'utf8');
+    const output = formatWkt(input);
+    assert.match(output, /^PROJ(?:CS|CRS)\["[^"\n\r]+",\n/u);
+    assert.equal(flattenLayout(output), flattenLayout(input));
+    assert.equal(formatWkt(output), output);
+  }
+});
+
+test('mixed bracket styles and WKT2 nested references retain original syntax', () => {
+  const input = 'BOUNDCRS(SOURCECRS[GEOGCRS("A",DATUM["B"])],TARGETCRS(GEOGCRS["C",DATUM("D")]))';
+  const formatted = formatWkt(input);
+  assert.ok(formatted.includes('DATUM["B"])],'));
+  assert.ok(formatted.includes('DATUM("D")]))'));
+  assert.equal(flattenLayout(formatted), flattenLayout(input));
+  assert.equal(formatWkt(formatted), formatted);
 });
