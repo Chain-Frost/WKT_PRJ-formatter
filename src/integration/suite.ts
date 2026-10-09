@@ -76,8 +76,9 @@ export async function run(): Promise<void> {
   assert.deepEqual(await providerEdits(editor.document, 8, false), []);
 
   console.log('Integration: malformed and unsupported inputs stay unchanged');
-  for (const unsupported of ['+proj=utm +zone=50 +south', 'GEOGCS["unterminated]']) {
-    const malformed = await openFixture('invalid.prj', unsupported);
+  for (const [index, unsupported] of ['+proj=utm +zone=50 +south', 'GEOGCS["unterminated]'].entries()) {
+    // VS Code caches open documents by URI; each case needs its own file name.
+    const malformed = await openFixture('invalid-' + index + '.prj', unsupported);
     assert.deepEqual(await providerEdits(malformed.document), []);
     await vscode.commands.executeCommand('wktPrjFormatter.formatDocument');
     assert.equal(malformed.document.getText(), unsupported);
