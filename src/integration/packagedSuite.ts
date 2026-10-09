@@ -28,7 +28,9 @@ export async function run(): Promise<void> {
     .find(path => existsSync(path));
   assert.ok(readmePath, 'VSIX omitted README/readme markdown');
   const readme = readFileSync(readmePath, 'utf8');
-  assert.match(readme, /!\[[^\]]+\]\(assets\/wkt-before-after\.png\)/u);
+  // vsce rewrites relative README images to absolute GitHub raw URLs in
+  // the packaged readme; GitHub source uses the original relative form.
+  assert.match(readme, /!\[[^\]]+\]\((?:assets\/|https:\/\/github\.com\/Chain-Frost\/WKT_PRJ-formatter\/raw\/HEAD\/assets\/)wkt-before-after\.png\)/u);
   for (const png of ['assets/icon.png', 'assets/wkt-before-after.png']) {
     const data: Buffer = readFileSync(join(target.extensionPath, png));
     assert.equal(data.subarray(0, 8).toString('hex'), '89504e470d0a1a0a',
