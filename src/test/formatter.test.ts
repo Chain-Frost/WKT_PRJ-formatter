@@ -37,12 +37,34 @@ test('supports WKT2 BOUNDCRS, nested extensions, and parentheses', () => {
   assert.equal(formatWkt(result), result);
 });
 
-test('retains escaped quotes, commas, brackets and PROJ metadata inside strings', () => {
+test('retains doubled quotes, commas, brackets and PROJ metadata inside strings', () => {
   const input = 'GEOGCS["A, [B] ""C""",EXTENSION["PROJ4","+proj=longlat +datum=WGS84"]]';
   const result = formatWkt(input);
   assert.match(result, /"A, \[B\] ""C"""/u);
   assert.match(result, /"\+proj=longlat \+datum=WGS84"/u);
   assert.equal(formatWkt(result), result);
+});
+
+test('treats a final reverse solidus inside a WKT2 string as literal', () => {
+  const input = String.raw`GEOGCRS["Name ends with \",DATUM["D",ELLIPSOID["E",6378137,298.257223563]]]`;
+  const output = formatWkt(input, { maxInlineLength: 50 });
+  assert.ok(output.includes(String.raw`"Name ends with \"`));
+  assert.match(output, /DATUM\[/u);
+  assert.equal(formatWkt(output, { maxInlineLength: 50 }), output);
+});
+
+test('preserves reverse solidus beside doubled quotes within WKT2', () => {
+  const input = String.raw`GEOGCRS["Path \ ""quoted"" \",DATUM["D",ELLIPSOID["E",6378137,298.257223563]]]`;
+  const output = formatWkt(input);
+  assert.ok(output.includes(String.raw`"Path \ ""quoted"" \"`));
+  assert.equal(formatWkt(output), output);
+});
+
+test('supports literal reverse solidus in WKT1 strings', () => {
+  const input = String.raw`GEOGCS["Datum \",DATUM["D",SPHEROID["S",6378137,298.257223563]],UNIT["Degree",0.0174532925199433]]`;
+  const output = formatWkt(input);
+  assert.ok(output.includes(String.raw`"Datum \"`));
+  assert.equal(formatWkt(output), output);
 });
 
 test('preserves Windows newlines, UTF-8 BOM and an ending newline', () => {

@@ -27,7 +27,7 @@ Example VS Code settings:
 }
 ```
 
-Respects the active editor's indentation width or tabs. Preserves existing LF/CRLF newline style, any UTF-8 BOM, optional final newline, quote escaping, keyword spelling, number precision and nested bracket style. Formatting is idempotent.
+Respects the active editor's indentation width or tabs. Preserves existing LF/CRLF newline style, any UTF-8 BOM, optional final newline, doubled quote escaping (as specified by WKT), keyword spelling, number precision and nested bracket style. Formatting is idempotent.
 
 ### Example WKT1
 

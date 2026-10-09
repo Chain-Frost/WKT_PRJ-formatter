@@ -67,11 +67,7 @@ function tokenize(source: string): Token[] {
       while (index < source.length) {
         const character = source[index];
         if (character === '"' && source[index + 1] === '"') {
-          index += 2; // WKT doubled quote within a quoted string.
-          continue;
-        }
-        if (character === '\\' && source[index + 1] === '"') {
-          index += 2; // Retain legacy escaped strings verbatim.
+          index += 2; // WKT1/WKT2: embedded quotes are doubled, not backslash-escaped.
           continue;
         }
         if (character === '"') {
