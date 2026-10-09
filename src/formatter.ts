@@ -3,7 +3,7 @@
  *
  * Preserve every input string and bare token, including number spelling,
  * identifiers and case. Uses a GDAL/pyproj-like hierarchical presentation.
- * Only whitespace between structural tokens changes.
+ * Only whitespace between structural tokens changes. No line-width heuristic.
  * This is a structural formatter, not a CRS validator or WKT dialect converter.
  */
 
@@ -37,12 +37,8 @@ interface Node {
 type Value = Node | Scalar;
 
 export interface FormatOptions {
-  /** One indentation level: spaces or tab(s). */
+  /** One indentation level (spaces or tabs). Defaults to four spaces. */
   readonly indent?: string;
-  /** Maximum length of a node rendered on one line, including indentation. */
-  readonly maxInlineLength?: number;
-  /** Visual columns per indentation tab (defaults to 4 for standalone calls). */
-  readonly tabSize?: number;
 }
 
 const IDENTIFIER = /^[A-Za-z_][A-Za-z_0-9]*$/u;
@@ -197,38 +193,8 @@ class Parser {
   }
 }
 
-function compact(node: Node, maxWidth: number): string | undefined {
-  if (maxWidth < 1) {
-    return undefined;
-  }
-  let text = node.name + node.opener;
-
-  for (let index = 0; index < node.arguments.length; index += 1) {
-    const item = node.arguments[index];
-    if (item === undefined) {
-      throw new Error('Internal formatter error: missing WKT argument');
-    }
-    const remaining = maxWidth - text.length;
-    const part = item.kind === 'scalar' ? item.raw : compact(item, remaining);
-    if (part === undefined) {
-      return undefined;
-    }
-    text += (index === 0 ? '' : ', ') + part;
-    if (text.length + 1 > maxWidth) {
-      return undefined;
-    }
-  }
-
-  return text + (node.opener === '[' ? ']' : ')');
-}
-
-function indentationWidth(indent: string, tabSize: number): number {
-  return Array.from(indent).reduce((width, character) => width + (character === '\t' ? tabSize : 1), 0);
-}
-
 function sourceLineEnding(source: string, tokens: readonly Token[]): string {
-  // Prefer layout whitespace. A newline inside a quoted WKT name is data,
-  // and may differ from the document's actual line-ending convention.
+  // Prefer structural whitespace, not line breaks inside quoted WKT strings.
   let previousEnd = 0;
   for (const token of tokens) {
     const separator = source.slice(previousEnd, token.offset).match(/\r\n|\n|\r/u);
@@ -241,43 +207,28 @@ function sourceLineEnding(source: string, tokens: readonly Token[]): string {
     source.match(/\r\n|\n|\r/u)?.[0] ?? '\n';
 }
 
-function render(
-  node: Node, depth: number, indent: string, lineEnding: string, width: number, tabSize: number,
-): string {
-  // Keep genuinely simple leaves on one line. Nested elements are always
-  // presented hierarchically, as in GDAL/pyproj's pretty WKT, even if a whole
-  // parent would technically fit within the configured width.
-  const hasChild = node.arguments.some(value => value.kind === 'node');
-  const oneline = hasChild
-    ? undefined
-    : compact(node, width - depth * indentationWidth(indent, tabSize));
-  if (oneline !== undefined) {
-    return oneline;
+/**
+ * GDAL/pyproj-style hierarchy. Scalers share their parent's line without
+ * extra spacing; child elements start on their own indented lines. Brackets
+ * close immediately after the last argument, even when it is a child node.
+ *
+ * No maximum line width: breaking a scalar-only leaf is not part of this style.
+ * This function changes layout only; lexical data is never normalized.
+ */
+function render(node: Node, depth: number, indent: string, lineEnding: string): string {
+  let text = node.name + node.opener;
+  for (const [index, value] of node.arguments.entries()) {
+    if (index > 0) {
+      text += ',';
+    }
+    if (value.kind === 'node') {
+      text += lineEnding + indent.repeat(depth + 1) +
+        render(value, depth + 1, indent, lineEnding);
+    } else {
+      text += value.raw;
+    }
   }
-
-  const closing = node.opener === '[' ? ']' : ')';
-  const first = node.arguments[0];
-  // The leading scalar (normally the element's name) remains on the opening
-  // line. A very long scalar is never split because that would change data.
-  const leadingScalar = first?.kind === 'scalar' ? first.raw : undefined;
-  const remaining = leadingScalar === undefined ? node.arguments : node.arguments.slice(1);
-  const opening = node.name + node.opener + (leadingScalar ?? '');
-
-  if (remaining.length === 0) {
-    return opening + closing;
-  }
-
-  const lines = remaining.map((value) => {
-    const content = value.kind === 'scalar'
-      ? value.raw
-      : render(value, depth + 1, indent, lineEnding, width, tabSize);
-    return indent.repeat(depth + 1) + content;
-  });
-
-  // Keep closing delimiters on the last child line, including when the child
-  // is itself hierarchical. The outer caller appends commas after delimiters.
-  return opening + (leadingScalar === undefined ? '' : ',') + lineEnding +
-    lines.join(',' + lineEnding) + closing;
+  return text + (node.opener === '[' ? ']' : ')');
 }
 
 /**
@@ -296,18 +247,9 @@ export function formatWkt(source: string, options: FormatOptions = {}): string {
     throw new Error('Indent must contain spaces or tabs only');
   }
 
-  const requestedWidth = options.maxInlineLength ?? 100;
-  const width = Number.isFinite(requestedWidth)
-    ? Math.max(40, Math.min(240, Math.trunc(requestedWidth)))
-    : 100;
-
-  const requestedTabSize = options.tabSize ?? 4;
-  const tabSize = Number.isSafeInteger(requestedTabSize) && requestedTabSize > 0
-    ? requestedTabSize : 4;
-
   const lineEnding = sourceLineEnding(source, tokens);
   const finalNewline = source.match(/(?:\r\n|\n|\r)$/u)?.[0] ?? '';
   const bom = source.startsWith('\uFEFF') ? '\uFEFF' : '';
 
-  return bom + render(tree, 0, indent, lineEnding, width, tabSize) + finalNewline;
+  return bom + render(tree, 0, indent, lineEnding) + finalNewline;
 }
