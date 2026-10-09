@@ -35,6 +35,11 @@
     "onCommand:wktPrjFormatter.formatDocument"
   ],
   "main": "./out/extension.js",
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": true
+    }
+  },
   "contributes": {
     "languages": [
       {
