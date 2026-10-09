@@ -62,5 +62,5 @@ test('large WKT with many nested nodes has stable deterministic ranges', () => {
   const source = 'ROOT[\n' + '  INNER(\n'.repeat(300) + '"x"\n' + '  )\n'.repeat(300) + ']';
   const ranges = findWktFolds(source);
   assert.equal(ranges.length, 301);
-  assert.deepEqual(ranges[0], { start: 0, end: 601 });
+  assert.deepEqual(ranges[0], { start: 0, end: 602 });
 });
