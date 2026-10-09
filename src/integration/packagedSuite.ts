@@ -16,7 +16,8 @@ export async function run(): Promise<void> {
 
   for (const path of ['out/extension.js', 'language-configuration.json',
     'syntaxes/wkt.tmLanguage.json', 'assets/icon.png',
-    'assets/wkt-before-after.png']) {
+    'assets/screenshots/wkt-before-after-dark.png',
+    'assets/screenshots/wkt-before-after-light.png']) {
     assert.ok(existsSync(join(target.extensionPath, path)), 'VSIX omitted ' + path);
   }
 
@@ -30,8 +31,8 @@ export async function run(): Promise<void> {
   const readme = readFileSync(readmePath, 'utf8');
   // vsce rewrites relative README images to absolute GitHub raw URLs in
   // the packaged readme; GitHub source uses the original relative form.
-  assert.match(readme, /!\[[^\]]+\]\((?:assets\/|https:\/\/github\.com\/Chain-Frost\/WKT_PRJ-formatter\/raw\/HEAD\/assets\/)wkt-before-after\.png\)/u);
-  for (const png of ['assets/icon.png', 'assets/wkt-before-after.png']) {
+  assert.match(readme, /!\[[^\]]+\]\((?:assets\/screenshots\/|https:\/\/github\.com\/Chain-Frost\/WKT_PRJ-formatter\/raw\/HEAD\/assets\/screenshots\/)wkt-before-after-dark\.png\)/u);
+  for (const png of ['assets/icon.png', 'assets/screenshots/wkt-before-after-dark.png', 'assets/screenshots/wkt-before-after-light.png']) {
     const data: Buffer = readFileSync(join(target.extensionPath, png));
     assert.equal(data.subarray(0, 8).toString('hex'), '89504e470d0a1a0a',
       'Packaged asset is not a PNG: ' + png);
