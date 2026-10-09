@@ -22,9 +22,9 @@ jobs:
       - name: Verify release tag and changelog
         shell: bash
         run: |
-          version="$(node -p "require('./package.json').version")"
-          test "$GITHUB_REF_NAME" = "v$version" || { echo "Release tag must equal v$version"; exit 1; }
-          grep -Fq "## [$version]" CHANGELOG.md || { echo "Missing versioned CHANGELOG section"; exit 1; }
+          node scripts/check-release.mjs "$GITHUB_REF_NAME"
+      - name: Regression-test release preflight without publishing
+        run: node --test scripts/check-release.test.mjs
       - name: Install locked dependencies
         run: npm ci --no-audit --no-fund
       - name: Lint, compilation, unit tests
