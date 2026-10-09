@@ -2,7 +2,8 @@
  * Conservative WKT1/WKT2 formatter.
  *
  * Preserve every input string and bare token, including number spelling,
- * identifiers and case. Only whitespace between structural tokens changes.
+ * identifiers and case. Uses a GDAL/pyproj-like hierarchical presentation.
+ * Only whitespace between structural tokens changes. No line-width heuristic.
  * This is a structural formatter, not a CRS validator or WKT dialect converter.
  */
 
@@ -36,10 +37,8 @@ interface Node {
 type Value = Node | Scalar;
 
 export interface FormatOptions {
-  /** One indentation level: spaces or tab(s). */
+  /** One indentation level (spaces or tabs). Defaults to four spaces. */
   readonly indent?: string;
-  /** Maximum length of a node rendered on one line, including indentation. */
-  readonly maxInlineLength?: number;
 }
 
 const IDENTIFIER = /^[A-Za-z_][A-Za-z_0-9]*$/u;
@@ -194,52 +193,42 @@ class Parser {
   }
 }
 
-function compact(node: Node, maxWidth: number): string | undefined {
-  if (maxWidth < 1) {
-    return undefined;
+function sourceLineEnding(source: string, tokens: readonly Token[]): string {
+  // Prefer structural whitespace, not line breaks inside quoted WKT strings.
+  let previousEnd = 0;
+  for (const token of tokens) {
+    const separator = source.slice(previousEnd, token.offset).match(/\r\n|\n|\r/u);
+    if (separator !== null) {
+      return separator[0];
+    }
+    previousEnd = token.offset + token.raw.length;
   }
+  return source.slice(previousEnd).match(/\r\n|\n|\r/u)?.[0] ??
+    source.match(/\r\n|\n|\r/u)?.[0] ?? '\n';
+}
+
+/**
+ * GDAL/pyproj-style hierarchy. Scalers share their parent's line without
+ * extra spacing; child elements start on their own indented lines. Brackets
+ * close immediately after the last argument, even when it is a child node.
+ *
+ * No maximum line width: breaking a scalar-only leaf is not part of this style.
+ * This function changes layout only; lexical data is never normalized.
+ */
+function render(node: Node, depth: number, indent: string, lineEnding: string): string {
   let text = node.name + node.opener;
-
-  for (let index = 0; index < node.arguments.length; index += 1) {
-    const item = node.arguments[index];
-    if (item === undefined) {
-      throw new Error('Internal formatter error: missing WKT argument');
+  for (const [index, value] of node.arguments.entries()) {
+    if (index > 0) {
+      text += ',';
     }
-    const remaining = maxWidth - text.length;
-    const part = item.kind === 'scalar' ? item.raw : compact(item, remaining);
-    if (part === undefined) {
-      return undefined;
-    }
-    text += (index === 0 ? '' : ', ') + part;
-    if (text.length + 1 > maxWidth) {
-      return undefined;
+    if (value.kind === 'node') {
+      text += lineEnding + indent.repeat(depth + 1) +
+        render(value, depth + 1, indent, lineEnding);
+    } else {
+      text += value.raw;
     }
   }
-
   return text + (node.opener === '[' ? ']' : ')');
-}
-
-function indentationWidth(indent: string): number {
-  return Array.from(indent).reduce((width, character) => width + (character === '\t' ? 4 : 1), 0);
-}
-
-function render(node: Node, depth: number, indent: string, lineEnding: string, width: number): string {
-  const oneline = compact(node, width - depth * indentationWidth(indent));
-  if (oneline !== undefined) {
-    return oneline;
-  }
-
-  const lines = node.arguments.map((value) => {
-    const content = value.kind === 'scalar'
-      ? value.raw
-      : render(value, depth + 1, indent, lineEnding, width);
-    return indent.repeat(depth + 1) + content;
-  });
-
-  const closing = node.opener === '[' ? ']' : ')';
-  return node.name + node.opener + lineEnding +
-    lines.join(',' + lineEnding) + lineEnding +
-    indent.repeat(depth) + closing;
 }
 
 /**
@@ -253,19 +242,14 @@ export function formatWkt(source: string, options: FormatOptions = {}): string {
   const tokens = tokenize(source);
   const tree = new Parser(tokens).parse();
 
-  const indent = options.indent ?? '  ';
+  const indent = options.indent ?? '    ';
   if (!/^(?: +|\t+)$/u.test(indent)) {
     throw new Error('Indent must contain spaces or tabs only');
   }
 
-  const requestedWidth = options.maxInlineLength ?? 100;
-  const width = Number.isFinite(requestedWidth)
-    ? Math.max(40, Math.min(240, Math.trunc(requestedWidth)))
-    : 100;
-
-  const lineEnding = source.match(/\r\n|\n|\r/u)?.[0] ?? '\n';
-  const finalNewline = /(?:\r\n|\n|\r)$/u.test(source) ? lineEnding : '';
+  const lineEnding = sourceLineEnding(source, tokens);
+  const finalNewline = source.match(/(?:\r\n|\n|\r)$/u)?.[0] ?? '';
   const bom = source.startsWith('\uFEFF') ? '\uFEFF' : '';
 
-  return bom + render(tree, 0, indent, lineEnding, width) + finalNewline;
+  return bom + render(tree, 0, indent, lineEnding) + finalNewline;
 }

@@ -1,10 +1,13 @@
 import * as vscode from 'vscode';
 import { formatWkt, WktFormatError } from './formatter';
+import { findWktFolds } from './folding';
+
+function effectiveTabSize(value: number | string | undefined): number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value > 0 ? value : 4;
+}
 
 function formatted(document: vscode.TextDocument, indent: string): string {
-  const maxInlineLength = vscode.workspace.getConfiguration('wktPrjFormatter', document.uri)
-    .get<number>('maxInlineLength', 100);
-  return formatWkt(document.getText(), { indent, maxInlineLength });
+  return formatWkt(document.getText(), { indent });
 }
 
 function fullRange(document: vscode.TextDocument): vscode.Range {
@@ -20,9 +23,17 @@ export function activate(context: vscode.ExtensionContext): void {
   ];
 
   context.subscriptions.push(
+    vscode.languages.registerFoldingRangeProvider(selector, {
+      provideFoldingRanges(document): vscode.FoldingRange[] {
+        return findWktFolds(document.getText()).map(
+          range => new vscode.FoldingRange(range.start, range.end),
+        );
+      },
+    }),
     vscode.languages.registerDocumentFormattingEditProvider(selector, {
       provideDocumentFormattingEdits(document, options): vscode.TextEdit[] {
-        const indent = options.insertSpaces ? ' '.repeat(options.tabSize) : '\t';
+        const tabSize = effectiveTabSize(options.tabSize);
+        const indent = options.insertSpaces ? ' '.repeat(tabSize) : '\t';
         try {
           const result = formatted(document, indent);
           if (result === document.getText()) {
@@ -38,10 +49,17 @@ export function activate(context: vscode.ExtensionContext): void {
         }
       },
     }),
-    vscode.commands.registerTextEditorCommand(
+    vscode.commands.registerCommand(
       'wktPrjFormatter.formatDocument',
-      async (editor: vscode.TextEditor): Promise<void> => {
-        const tabSize = typeof editor.options.tabSize === 'number' ? editor.options.tabSize : 4;
+      async (): Promise<void> => {
+        // A command can be invoked from the Command Palette while focus is
+        // outside the editor. Use the active editor rather than depending on
+        // registerTextEditorCommand's editor-focus precondition.
+        const editor = vscode.window.activeTextEditor;
+        if (editor === undefined) {
+          return;
+        }
+        const tabSize = effectiveTabSize(editor.options.tabSize);
         const indent = editor.options.insertSpaces === false ? '\t' : ' '.repeat(tabSize);
         let result: string;
         try {

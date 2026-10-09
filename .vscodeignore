@@ -10,3 +10,8 @@
 **/tsconfig.json
 **/eslint.config.mjs
 **/package-lock.json
+
+**/out/integration/**
+**/assets/icon.svg
+**/assets/wkt-before-after.svg
+**/scripts/**

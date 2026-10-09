@@ -35,6 +35,11 @@
     "onCommand:wktPrjFormatter.formatDocument"
   ],
   "main": "./out/extension.js",
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": true
+    }
+  },
   "contributes": {
     "languages": [
       {
@@ -64,19 +69,7 @@
         "title": "Format WKT / PRJ",
         "category": "WKT / PRJ"
       }
-    ],
-    "configuration": {
-      "title": "WKT / PRJ Formatter",
-      "properties": {
-        "wktPrjFormatter.maxInlineLength": {
-          "type": "integer",
-          "default": 100,
-          "minimum": 40,
-          "maximum": 240,
-          "description": "Maximum width of a compact WKT node before its arguments are expanded across lines (including indentation)."
-        }
-      }
-    }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
@@ -85,7 +78,11 @@
     "lint": "eslint src",
     "test": "npm run compile && node --test out/test/*.test.js",
     "check": "npm run lint && npm test",
-    "package:vsix": "npm run check && npx vsce package"
+    "package:vsix": "npm run check && npx vsce package",
+    "test:integration": "npm run compile && node out/integration/runner.js",
+    "test:packaged": "npm run compile && node out/integration/packagedRunner.js",
+    "test:untrusted": "npm run compile && node out/integration/untrustedRunner.js",
+    "test:release": "node --test scripts/check-release.test.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
@@ -94,6 +91,10 @@
     "@vscode/vsce": "^3.0.0",
     "eslint": "^9.0.0",
     "typescript": "^5.6.3",
-    "typescript-eslint": "^8.0.0"
-  }
+    "typescript-eslint": "^8.0.0",
+    "vscode-oniguruma": "^2.0.1",
+    "vscode-textmate": "^9.3.2",
+    "@vscode/test-electron": "^3.1.0"
+  },
+  "icon": "assets/icon.png"
 }
