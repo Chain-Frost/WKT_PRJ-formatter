@@ -15,8 +15,21 @@ export async function run(): Promise<void> {
   assert.equal(target.packageJSON.version, expectedVersion);
 
   for (const path of ['out/extension.js', 'language-configuration.json',
-    'syntaxes/wkt.tmLanguage.json', 'assets/icon.png']) {
+    'syntaxes/wkt.tmLanguage.json', 'assets/icon.png',
+    'assets/wkt-before-after.png', 'README.md']) {
     assert.ok(existsSync(join(target.extensionPath, path)), 'VSIX omitted ' + path);
+  }
+
+  // Validate that the VS Code extension Details page has a resolvable image
+  // reference and that the packaged PNG files have the expected signatures.
+  const readme = readFileSync(join(target.extensionPath, 'README.md'), 'utf8');
+  assert.match(readme, /!\[[^\]]+\]\(assets\/wkt-before-after\.png\)/u);
+  for (const png of ['assets/icon.png', 'assets/wkt-before-after.png']) {
+    const data = readFileSync(join(target.extensionPath, png));
+    assert.equal(data.subarray(0, 8).toString('hex'), '89504e470d0a1a0a',
+      'Packaged asset is not a PNG: ' + png);
+    assert.ok(data.readUInt32BE(16) >= 128 && data.readUInt32BE(20) >= 128,
+      'Packaged PNG has unexpectedly small dimensions: ' + png);
   }
   for (const path of ['src', 'fixtures', 'out/test', 'out/integration', 'node_modules']) {
     assert.equal(existsSync(join(target.extensionPath, path)), false,
