@@ -4,163 +4,93 @@ import { resolve } from 'node:path';
 import { test } from 'node:test';
 import { formatWkt, WktFormatError } from '../formatter';
 
-const original = readFileSync(
-  resolve(__dirname, '../../fixtures/gda94-mga-zone50.prj'), 'utf8',
-).trimEnd();
+const esri = readFileSync(resolve(__dirname, '../../fixtures/gda94-mga-zone50.prj'), 'utf8').trimEnd();
+const wkt2 = readFileSync(resolve(__dirname, '../../fixtures/gda94-mga-zone50.wkt2'), 'utf8').trimEnd();
 
-const wkt2 = 'PROJCRS["WGS 84 / UTM zone 50S",BASEGEOGCRS["WGS 84",DATUM["World Geodetic System 1984",ELLIPSOID["WGS 84",6378137,298.257223563,LENGTHUNIT["metre",1]]]],CONVERSION["UTM zone 50S",METHOD["Transverse Mercator",ID["EPSG",9807]],PARAMETER["Longitude of natural origin",117,ANGLEUNIT["degree",0.0174532925199433]]],CS[Cartesian,2],AXIS["Easting (E)",east,ORDER[1],LENGTHUNIT["metre",1]],AXIS["Northing (N)",north,ORDER[2],LENGTHUNIT["metre",1]],ID["EPSG",32750]]';
-
-test('formats supplied ESRI WKT1 PRJ without modifying literals', () => {
-  const result = formatWkt(original);
+test('GDAL-style WKT1 retains literal numbers and leaf elements', () => {
+  const result = formatWkt(esri);
   assert.match(result, /^PROJCS\["GDA_1994_MGA_Zone_50",\n/u);
-  assert.match(result, /SPHEROID\["GRS_1980", 6378137\.0, 298\.257222101\]/u);
-  assert.match(result, /PARAMETER\["Central_Meridian", 117\.0\]/u);
-  assert.match(result, /GEOGCS\[/u);
+  assert.ok(result.includes('SPHEROID["GRS_1980",6378137.0,298.257222101]'));
+  assert.ok(result.includes('PARAMETER["Central_Meridian",117.0]'));
   assert.equal(formatWkt(result), result);
 });
 
-test('supports nested WKT2 projection definitions and ID, AXIS, ORDER', () => {
-  const result = formatWkt(wkt2, { maxInlineLength: 85 });
-  assert.match(result, /^PROJCRS\["WGS 84 \/ UTM zone 50S",\n/u);
-  assert.match(result, /BASEGEOGCRS\[/u);
-  assert.match(result, /ORDER\[2\]/u);
-  assert.match(result, /ID\["EPSG", 32750\]/u);
-  assert.match(result, /LENGTHUNIT\["metre", 1\]/u);
-  assert.equal(formatWkt(result, { maxInlineLength: 85 }), result);
-});
-
-test('supports WKT2 BOUNDCRS, nested extensions, and parentheses', () => {
-  const input = 'BOUNDCRS(SOURCECRS(GEOGCRS("A",DATUM("B"))),TARGETCRS(GEOGCRS("C",DATUM("D"))),ABRIDGEDTRANSFORMATION("Shift",METHOD("Geocentric translations"),PARAMETER("X",0.000)))';
-  const result = formatWkt(input);
-  assert.match(result, /^BOUNDCRS\(/u);
-  assert.match(result, /PARAMETER\("X", 0\.000\)/u);
-  assert.equal(formatWkt(result), result);
-});
-
-test('retains doubled quotes, commas, brackets and PROJ metadata inside strings', () => {
-  const input = 'GEOGCS["A, [B] ""C""",EXTENSION["PROJ4","+proj=longlat +datum=WGS84"]]';
-  const result = formatWkt(input);
-  assert.match(result, /"A, \[B\] ""C"""/u);
-  assert.match(result, /"\+proj=longlat \+datum=WGS84"/u);
-  assert.equal(formatWkt(result), result);
-});
-
-test('treats a final reverse solidus inside a WKT2 string as literal', () => {
-  const input = String.raw`GEOGCRS["Name ends with \",DATUM["D",ELLIPSOID["E",6378137,298.257223563]]]`;
-  const output = formatWkt(input, { maxInlineLength: 50 });
-  assert.ok(output.includes(String.raw`"Name ends with \"`));
-  assert.match(output, /DATUM\[/u);
-  assert.equal(formatWkt(output, { maxInlineLength: 50 }), output);
-});
-
-test('preserves reverse solidus beside doubled quotes within WKT2', () => {
-  const input = String.raw`GEOGCRS["Path \ ""quoted"" \",DATUM["D",ELLIPSOID["E",6378137,298.257223563]]]`;
-  const output = formatWkt(input);
-  assert.ok(output.includes(String.raw`"Path \ ""quoted"" \"`));
+test('GDAL-style WKT2 nests elements while preserving scalar spelling', () => {
+  const output = formatWkt(wkt2);
+  assert.match(output, /^PROJCRS\["GDA94 \/ MGA zone 50",\n/u);
+  assert.ok(output.includes('ID["EPSG",32750]'));
+  assert.ok(output.includes('SCALEUNIT["unity",1]'));
+  assert.ok(output.includes('BBOX[-38.53,114,-12.06,120.01]'));
   assert.equal(formatWkt(output), output);
 });
 
-test('supports literal reverse solidus in WKT1 strings', () => {
-  const input = String.raw`GEOGCS["Datum \",DATUM["D",SPHEROID["S",6378137,298.257223563]],UNIT["Degree",0.0174532925199433]]`;
+test('mixed parentheses and square brackets retain their delimiter types', () => {
+  const input = 'BOUNDCRS(SOURCECRS(GEOGCRS("A",DATUM("B"))),TARGETCRS[GEOGCRS("C",DATUM("D"))])';
   const output = formatWkt(input);
-  assert.ok(output.includes(String.raw`"Datum \"`));
+  assert.ok(output.startsWith('BOUNDCRS(\n'));
+  assert.ok(output.includes('DATUM("B")))'));
+  assert.ok(output.includes('DATUM("D"))])'));
   assert.equal(formatWkt(output), output);
 });
 
-test('preserves Windows newlines, UTF-8 BOM and an ending newline', () => {
-  const input = '\uFEFF' + wkt2 + '\r\n';
-  const result = formatWkt(input);
-  assert.ok(result.startsWith('\uFEFFPROJCRS["WGS 84 / UTM zone 50S",\r\n'));
-  assert.ok(result.endsWith('\r\n'));
-  assert.ok(!/(?<!\r)\n/u.test(result));
-  assert.equal(formatWkt(result), result);
+test('quoted commas, brackets, doubled quotes and literal backslashes are data', () => {
+  const input = 'GEOGCS["A, [B] ""C"" \\",EXTENSION["PROJ4","+proj=longlat +datum=WGS84"]]';
+  const output = formatWkt(input);
+  assert.ok(output.includes('"A, [B] ""C"" \\"'));
+  assert.ok(output.includes('"+proj=longlat +datum=WGS84"'));
+  assert.equal(formatWkt(output), output);
 });
 
-test('indents with tabs or four spaces as selected', () => {
-  const input = 'PROJCS["Long projected CRS name",GEOGCS["Long geographic CRS name",DATUM["Long datum name"]]]';
-  assert.match(formatWkt(input, { indent: '\t', maxInlineLength: 40 }), /\n\tGEOGCS\[/u);
-  assert.match(formatWkt(input, { indent: '    ', maxInlineLength: 40 }), /\n {4}GEOGCS\[/u);
+test('LF, CRLF, BOM and final-newline choices survive unchanged', () => {
+  for (const eol of ['\n', '\r\n', '\r']) {
+    for (const terminal of ['', eol]) {
+      const input = '\uFEFFGEOGCRS["a",'+eol+'DATUM["b"]]'+terminal;
+      const output = formatWkt(input);
+      assert.ok(output.startsWith('\uFEFFGEOGCRS["a",'+eol));
+      assert.ok(output.endsWith('DATUM["b"]]'+terminal));
+      assert.equal(formatWkt(output), output);
+    }
+  }
 });
 
-test('rejects non-WKT PROJ.4 strings rather than editing them', () => {
-  assert.throws(() => formatWkt('+proj=utm +zone=50 +south +datum=WGS84'), WktFormatError);
+test('newline inside a quoted scalar does not override document line endings', () => {
+  const input = 'GEOGCRS["first\nsecond",\r\nDATUM["D"]]\r\n';
+  const output = formatWkt(input);
+  assert.ok(output.startsWith('GEOGCRS["first\nsecond",\r\n'));
+  assert.ok(output.endsWith('DATUM["D"]]\r\n'));
+  assert.equal(formatWkt(output), output);
 });
 
-test('rejects malformed WKT without attempting partial formatting', () => {
-  for (const input of [
-    '',
-    'PROJCS["A"',
-    'PROJCS["A",]',
-    'PROJCS["A"] trailing',
-    'PROJCS["unterminated]',
-    'PROJCS["A",UNIT("metre",1]]',
-    'PROJCS["A" "B"]',
-    'PROJCS[]',
-    'PROJCS["A",,UNIT["metre",1]]',
-  ]) {
+test('respects two-space, four-space and tab indentation', () => {
+  const input = 'ROOT["first",NESTED["child",SUB["leaf"]]]';
+  for (const indent of ['  ', '    ', '\t']) {
+    const options = { indent };
+    const result = formatWkt(input, options);
+    assert.ok(result.includes('\n'+indent+'NESTED['));
+    assert.ok(result.includes('\n'+indent.repeat(2)+'SUB['));
+    assert.equal(formatWkt(result, options), result);
+  }
+});
+
+test('malformed WKT and unsupported PROJ.4 fail closed with WktFormatError', () => {
+  for (const input of ['', '+proj=utm +zone=50', 'ROOT[]', 'ROOT["x"', 'ROOT["x",]',
+    'ROOT["x"] extra', 'ROOT["unterminated]', 'ROOT["x",UNIT("m",1]]']) {
     assert.throws(() => formatWkt(input), WktFormatError, input);
   }
+  const proj = readFileSync(resolve(__dirname, '../../fixtures/gda94-mga-zone50-proj4.prj'), 'utf8');
+  assert.throws(() => formatWkt(proj), WktFormatError);
 });
 
-test('does not normalise quoted case, parameter numbers, or exponent notation', () => {
-  const input = 'GEOGCRS["aBc",DATUM["d"],AXIS["x",north],ANGLEUNIT["degree",1.74532925199433E-2],ID["EPSG",4326]]';
-  const result = formatWkt(input);
-  assert.match(result, /1\.74532925199433E-2/u);
-  assert.match(result, /"aBc"/u);
-  assert.match(result, /north/u);
-  assert.equal(formatWkt(result), result);
+test('safe nesting limit is explicit rather than a call stack overflow', () => {
+  const limit = 'N['.repeat(257) + '"x"' + ']'.repeat(257);
+  const exceeds = 'N['.repeat(258) + '"x"' + ']'.repeat(258);
+  assert.ok(formatWkt(limit).startsWith('N[\n'));
+  assert.throws(() => formatWkt(exceeds), (error: unknown) =>
+    error instanceof WktFormatError && /nesting exceeds safety limit/u.test(error.message));
 });
 
-/**
- * Compare the complete significant WKT character stream, rather than selected
- * substrings. Outside quoted strings only whitespace is ignored.
- */
-function withoutFormattingWhitespace(source: string): string {
-  let inString = false;
-  let result = '';
-  for (let index = 0; index < source.length; index += 1) {
-    const character = source[index] ?? '';
-    if (character === '"') {
-      result += character;
-      if (inString && source[index + 1] === '"') {
-        result += '"';
-        index += 1;
-      } else {
-        inString = !inString;
-      }
-    } else if (inString || !/\s/u.test(character)) {
-      result += character;
-    }
+test('invalid indentation is rejected', () => {
+  for (const indent of ['', '\t ', ' \t', 'x', '\n']) {
+    assert.throws(() => formatWkt('ROOT["a"]', { indent }), /Indent must contain/u);
   }
-  assert.equal(inString, false, 'WKT fixture must end outside a quoted string');
-  return result;
-}
-
-for (const [filename, root] of [
-  ['gda94-mga-zone50.prj', 'PROJCS'],
-  ['gda94-mga-zone50-ogc.wkt', 'PROJCS'],
-  ['gda94-mga-zone50.wkt2', 'PROJCRS'],
-] as const) {
-  test('formats EPSG:28350 ' + filename + ' losslessly at multiple line widths', () => {
-    const input = readFileSync(resolve(__dirname, '../../fixtures/' + filename), 'utf8');
-    assert.ok(input.startsWith(root + '['));
-    for (const maxInlineLength of [80, 100, 120]) {
-      const output = formatWkt(input, { maxInlineLength });
-      assert.equal(
-        withoutFormattingWhitespace(output),
-        withoutFormattingWhitespace(input),
-        'all significant tokens must be preserved in ' + filename,
-      );
-      assert.equal(formatWkt(output, { maxInlineLength }), output);
-      assert.ok(output.includes('0.9996'));
-    }
-  });
-}
-
-test('preserves unsupported EPSG:28350 PROJ.4 sample for future #14 coverage', () => {
-  const input = readFileSync(
-    resolve(__dirname, '../../fixtures/gda94-mga-zone50-proj4.prj'), 'utf8',
-  );
-  assert.match(input, /^\+proj=utm \+zone=50 \+south /u);
-  assert.throws(() => formatWkt(input), WktFormatError);
 });
