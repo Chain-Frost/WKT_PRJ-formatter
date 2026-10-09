@@ -48,8 +48,8 @@ function structuralTokens(source: string): string[] {
 }
 
 const esri = readFileSync(resolve(__dirname, '../../fixtures/gda94-mga-zone50.prj'), 'utf8').trimEnd();
-const wkt2 = 'PROJCRS["UTM \\ \"x\" \"quoted\"\"",BASEGEOGCRS("WGS 84",DATUM["Équateur, [x]",ELLIPSOID["S",+6378137.0,2.98257223563E+2]]),CONVERSION["Projection",PARAMETER["Latitude",-.0003e-2]],AXIS["Easting",east]]';
-const mixed = String.raw`BOUNDCRS(SOURCECRS[GEOGCRS("backslash \\ and ""quote""",[DATUM("D")])],TARGETCRS[GEOGCRS("C")])`;
+const wkt2 = String.raw`PROJCRS["UTM \ ""quoted""",BASEGEOGCRS("WGS 84",DATUM["Équateur, [x]",ELLIPSOID["S",+6378137.0,2.98257223563E+2]]),CONVERSION["Projection",PARAMETER["Latitude",-.0003e-2]],AXIS["Easting",east]]`;
+const mixed = String.raw`BOUNDCRS(SOURCECRS[GEOGCRS("backslash \ and ""quote""",DATUM("D"))],TARGETCRS[GEOGCRS("C")])`;
 
 test('structural oracle detects substitutions, deletions and bracket changes', () => {
   const input = 'GEOGCRS["A",AXIS["X",north],ID["EPSG",4326]]';
@@ -61,7 +61,7 @@ test('structural oracle detects substitutions, deletions and bracket changes', (
 
 test('complete WKT1/WKT2 token sequences and literal strings survive formatting', () => {
   for (const source of [esri, wkt2, mixed,
-    'GEOGCS["Spacing  inside \"strings\"",PARAMETER["x", -1.23e+04],AXIS["Y",south]]',
+    String.raw`GEOGCS["Spacing  inside ""strings""",PARAMETER["x", -1.23e+04],AXIS["Y",south]]`,
     'GEOGCRS["line one\nline two",DATUM["test"]]',
   ]) {
     for (const indent of ['  ', '    ', '\t']) {
