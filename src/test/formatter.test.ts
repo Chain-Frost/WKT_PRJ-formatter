@@ -55,7 +55,7 @@ test('preserves Windows newlines, UTF-8 BOM and an ending newline', () => {
 });
 
 test('indents with tabs or four spaces as selected', () => {
-  const input = 'PROJCS["A",GEOGCS["B",DATUM["C"]]]';
+  const input = 'PROJCS["Long projected CRS name",GEOGCS["Long geographic CRS name",DATUM["Long datum name"]]]';
   assert.match(formatWkt(input, { indent: '\t', maxInlineLength: 40 }), /\n\tGEOGCS\[/u);
   assert.match(formatWkt(input, { indent: '    ', maxInlineLength: 40 }), /\n {4}GEOGCS\[/u);
 });
