@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <title>WKT / PRJ Formatter globe and square-bracket symbol</title>
+  <rect width="128" height="128" rx="20" fill="#081B38"/>
+  <path d="M29 31H20V97H29 M99 31H108V97H99" fill="none" stroke="#06D7C4" stroke-width="9" stroke-linejoin="round" stroke-linecap="square"/>
+  <circle cx="64" cy="64" r="36" fill="none" stroke="#F7FAFF" stroke-width="5"/>
+  <path d="M64 28V100 M28 64H100 M64 28C42 44 42 84 64 100 M64 28C86 44 86 84 64 100 M36 45C53 53 75 53 92 45 M36 83C53 75 75 75 92 83" fill="none" stroke="#F7FAFF" stroke-width="3" stroke-linecap="round"/>
+</svg>
