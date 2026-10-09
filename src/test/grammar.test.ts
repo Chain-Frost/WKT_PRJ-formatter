@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { test } from 'node:test';
 import { loadWASM, OnigScanner, OnigString } from 'vscode-oniguruma';
-import { parseRawGrammar, Registry, type IGrammar, type IToken, type StackElement } from 'vscode-textmate';
+import { parseRawGrammar, Registry, type IGrammar, type IToken, type StateStack } from 'vscode-textmate';
 
 const grammarFile = resolve(__dirname, '../../syntaxes/wkt.tmLanguage.json');
 
@@ -91,7 +91,7 @@ test('formatted multiline WKT1 and WKT2 use the shipped grammar and stable scope
     '  ID("EPSG", 32750)',
     ')',
   ];
-  let stack: StackElement | null = null;
+  let stack: StateStack | null = null;
   for (const line of lines) {
     const result = grammar.tokenizeLine(line, stack);
     stack = result.ruleStack;
