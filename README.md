@@ -66,6 +66,8 @@ npm run package:vsix
 
 Press **F5** to launch an Extension Development Host. `npm test` runs parser/formatter unit tests without a GUI. CI checks compilation, ESLint, unit tests and VSIX packaging.
 
+To install without building locally, download the `wkt-prj-formatter-vsix` artifact from a successful GitHub Actions CI run, extract the `.vsix`, then select **Extensions → ... → Install from VSIX** in VS Code.
+
 ## Design constraints
 
 The formatter only changes layout/whitespace *between* WKT tokens. It does not convert WKT1 to WKT2, change datum parameters, normalise numeric precision, validate CRS geodetic semantics, or interpret PROJ.4 strings. On invalid input the standard formatting provider makes no edit; the explicit command explains the parsing error.

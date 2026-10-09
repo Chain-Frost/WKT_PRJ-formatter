@@ -25,3 +25,9 @@ jobs:
         run: npm test
       - name: Package VSIX
         run: npx vsce package
+      - name: Upload packaged extension
+        uses: actions/upload-artifact@v4
+        with:
+          name: wkt-prj-formatter-vsix
+          path: '*.vsix'
+          if-no-files-found: error
