@@ -1,7 +1,8 @@
+import { spawn } from 'node:child_process';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { downloadAndUnzipVSCode, runTests } from '@vscode/test-electron';
+import { downloadAndUnzipVSCode } from '@vscode/test-electron';
 
 /**
  * A distinct Extension Host session, profile and workspace is essential.
@@ -28,18 +29,34 @@ async function main(): Promise<void> {
 
       console.log('Verifying actual Restricted Mode using VS Code ' + version);
       const binary = await downloadAndUnzipVSCode(version);
-      await runTests({
-        vscodeExecutablePath: binary,
-        extensionDevelopmentPath: resolve(__dirname, '../..'),
-        extensionTestsPath: resolve(__dirname, 'untrustedSuite'),
-        launchArgs: [
-          workspace,
-          '--user-data-dir=' + profile,
-          '--extensions-dir=' + join(directory, 'extensions'),
-          '--disable-updates',
-          '--skip-welcome',
-          '--skip-release-notes',
-        ],
+      // @vscode/test-electron.runTests *always* adds
+      // --disable-workspace-trust (microsoft/vscode-test lib/runTest.ts).
+      // Launch the downloaded VS Code executable directly instead, using
+      // the same extension development/test flags but leaving Workspace Trust
+      // enabled. Never add --disable-workspace-trust here.
+      const args = [
+        workspace,
+        '--no-sandbox',
+        '--disable-gpu-sandbox',
+        '--disable-updates',
+        '--no-cached-data',
+        '--skip-welcome',
+        '--skip-release-notes',
+        '--user-data-dir=' + profile,
+        '--extensions-dir=' + join(directory, 'extensions'),
+        '--extensionDevelopmentPath=' + resolve(__dirname, '../..'),
+        '--extensionTestsPath=' + resolve(__dirname, 'untrustedSuite'),
+      ];
+      await new Promise<void>((resolveExit, reject) => {
+        const processHandle = spawn(binary, args, { stdio: 'inherit', env: process.env });
+        processHandle.once('error', reject);
+        processHandle.once('close', (code, signal) => {
+          if (code === 0) {
+            resolveExit();
+          } else {
+            reject(new Error('Untrusted VS Code host exited ' + code + ', signal ' + signal));
+          }
+        });
       });
     } finally {
       rmSync(directory, { recursive: true, force: true });
