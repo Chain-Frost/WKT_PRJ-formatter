@@ -128,7 +128,7 @@ function withoutFormattingWhitespace(source: string): string {
       } else {
         inString = !inString;
       }
-    } else if (inString || !/\\s/u.test(character)) {
+    } else if (inString || !/\s/u.test(character)) {
       result += character;
     }
   }
@@ -161,6 +161,6 @@ test('preserves unsupported EPSG:28350 PROJ.4 sample for future #14 coverage', (
   const input = readFileSync(
     resolve(__dirname, '../../fixtures/gda94-mga-zone50-proj4.prj'), 'utf8',
   );
-  assert.match(input, /^\\+proj=utm \\+zone=50 \\+south /u);
+  assert.match(input, /^\+proj=utm \+zone=50 \+south /u);
   assert.throws(() => formatWkt(input), WktFormatError);
 });
