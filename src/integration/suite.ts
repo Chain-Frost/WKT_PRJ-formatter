@@ -44,6 +44,13 @@ Promise<void> {
   assert.equal(await vscode.workspace.applyEdit(changes), true);
 }
 
+function asDocumentEol(expected: string, document: vscode.TextDocument): string {
+  // VS Code normalises inserted edits to each open document's preferred EOL
+  // (CRLF on the Windows runner, LF on Ubuntu).
+  const eol = document.eol === vscode.EndOfLine.CRLF ? '\r\n' : '\n';
+  return expected.replace(/\r\n|\n|\r/gu, eol);
+}
+
 export async function run(): Promise<void> {
   console.log('Integration: actual WKT file extensions, activation and formatting');
   for (const filename of [
@@ -66,13 +73,13 @@ export async function run(): Promise<void> {
   assert.equal(vscode.window.activeTextEditor?.document.uri.toString(), editor.document.uri.toString(),
     'The command requires a visible active WKT editor');
   await vscode.commands.executeCommand('wktPrjFormatter.formatDocument');
-  assert.equal(editor.document.getText(), formatWkt(raw, { indent: '  ' }));
+  assert.equal(editor.document.getText(), asDocumentEol(formatWkt(raw, { indent: '  ' }), editor.document));
   await vscode.commands.executeCommand('undo');
   assert.equal(editor.document.getText(), raw, 'One undo must restore original WKT');
 
   editor.options = { insertSpaces: false, tabSize: 8 };
   await vscode.commands.executeCommand('wktPrjFormatter.formatDocument');
-  assert.equal(editor.document.getText(), formatWkt(raw, { indent: '\t' }));
+  assert.equal(editor.document.getText(), asDocumentEol(formatWkt(raw, { indent: '\t' }), editor.document));
   assert.deepEqual(await providerEdits(editor.document, 8, false), []);
 
   console.log('Integration: malformed and unsupported inputs stay unchanged');
@@ -86,6 +93,7 @@ export async function run(): Promise<void> {
 
   console.log('Integration: bracket folding provider for nested WKT');
   const nested = await openFixture('fold.wkt2', raw);
+  await applyProvider(nested.document); // Source is one line; format before testing multiline folds.
   const ranges = await vscode.commands.executeCommand<vscode.FoldingRange[]>(
     'vscode.executeFoldingRangeProvider', nested.document.uri,
   );
@@ -98,6 +106,6 @@ export async function run(): Promise<void> {
   const saved = await openFixture('format-on-save.wkt', raw);
   await saved.edit(edit => edit.insert(saved.document.positionAt(saved.document.getText().length), ' '));
   assert.equal(await saved.document.save(), true);
-  assert.equal(saved.document.getText(), formatWkt(raw, { indent: '    ' }));
+  assert.equal(saved.document.getText(), asDocumentEol(formatWkt(raw, { indent: '    ' }), saved.document));
   console.log('WKT Extension Host tests passed.');
 }
