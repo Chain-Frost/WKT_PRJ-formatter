@@ -56,17 +56,24 @@ PROJCS[
 ]
 ```
 
+## Editor support
+
+- **Syntax highlighting:** The shipped TextMate grammar recognizes WKT elements, strings, numerical constants, directions and punctuation. A GUI-free test harness runs the actual grammar using `vscode-textmate` and `vscode-oniguruma` (`npm test`). The test dependencies are excluded from the VSIX. For visual theme QA, inspect a multiline WKT1 and WKT2 file with **Default Dark Modern** and **Default Light Modern** in VS Code; check both bracket contrast and quoted-string legibility.
+- **Bracket-aware folding:** VS Code's built-in indentation folding can leave an aligned closing `]` or `)` visible below a collapsed element. This extension's folding provider includes the complete multiline bracket/parenthesis node. Single-line elements do not fold; delimiters inside quoted strings (including doubled quotes or literal backslashes) are ignored. Malformed input is handled without editing the document. Folding is available on `.prj`, `.wkt` and `.wkt2` files. Use the gutter chevrons next to nested elements to verify this visually.
+
 ## Development
 
 Requires Node.js 22 and VS Code 1.85 or later.
 
 ```sh
-npm install --no-audit --no-fund
+npm ci --no-audit --no-fund
 npm run check
 npm run package:vsix
 ```
 
-Press **F5** to launch an Extension Development Host. `npm test` runs the GUI-free formatter/unit suites, including an independent token-preservation oracle, tab-size boundaries, deep nesting, Unicode, and CRLF/file-path tests. CI runs ESLint, compilation and tests on both `ubuntu-latest` and `windows-latest`. The Windows job exercises real Windows filesystem paths and CRLF fixtures. A single Ubuntu packaging job starts **only after both platforms pass**, runs validation again, and uploads one VSIX. VS Code Extension Host tests and packaged-install smoke tests remain future work.
+Use Node.js 22 and the committed `package-lock.json` for repeatable builds. `npm ci` deliberately fails if the manifest and lockfile disagree, rather than updating dependencies silently. To update dependencies intentionally, run `npm install` (or `npm update`) and commit the resulting `package-lock.json` alongside `package.json`. Then rerun `npm ci` from a clean checkout.
+
+Press **F5** to launch an Extension Development Host. `npm test` runs the GUI-free formatter/unit suites, including an independent token-preservation oracle, tab-size boundaries, deep nesting, Unicode, and CRLF/file-path tests. CI runs ESLint, compilation and tests on both `ubuntu-latest` and `windows-latest`. The Windows job exercises real Windows filesystem paths and CRLF fixtures. A single Ubuntu packaging job starts **only after both platforms pass**, runs validation again, and uploads one VSIX. Both platforms install dependencies with `npm ci` using the committed lockfile. VS Code Extension Host tests and packaged-install smoke tests remain future work.
 
 ### Build and install from GitHub Actions
 
