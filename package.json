@@ -3,7 +3,7 @@
   "displayName": "WKT / PRJ Formatter",
   "publisher": "Chain-Frost",
   "description": "Readable, lossless WKT1 and WKT2 formatting for GIS .prj and .wkt files.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "license": "MIT",
   "repository": {
     "type": "git",

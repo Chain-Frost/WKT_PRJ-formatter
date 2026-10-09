@@ -4,6 +4,8 @@ Notable changes to the WKT / PRJ Formatter extension are recorded here. This doc
 
 ## Unreleased
 
+## [0.2.0] - 2026-10-10
+
 ### Changed
 - **Formatting presentation changed intentionally (#16):** WKT1/WKT2 now use GDAL/pyproj-like hierarchical indentation, first-scalar-on-opening-line layout, no extra spaces after commas, and closing brackets on the last child line. No maximum line width is imposed and the obsolete `maxInlineLength` setting is removed. The former hybrid compact/expanded layout is not retained. This alters whitespace only, not CRS values or non-whitespace WKT tokens.
 - The editor's indentation choice is respected (#9). Tab-width measurement is no longer needed because formatting does not impose any line-width limit.
