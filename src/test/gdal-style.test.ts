@@ -71,7 +71,7 @@ test('real EPSG:28350 ESRI/OGC WKT1 and WKT2 use the same lossless style', () =>
     'gda94-mga-zone50.wkt2']) {
     const input = readFileSync(resolve(__dirname, '../../fixtures', name), 'utf8');
     const output = formatWkt(input);
-    assert.match(output, /^PROJ(?:CS|CRS)\["[^"\n\r]+",\n/u);
+    assert.match(output, /^PROJ(?:CS|CRS)\["[^"\n\r]+",\r?\n/u);
     assert.equal(flattenLayout(output), flattenLayout(input));
     assert.equal(formatWkt(output), output);
   }
