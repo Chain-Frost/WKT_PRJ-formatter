@@ -16,13 +16,18 @@ export async function run(): Promise<void> {
 
   for (const path of ['out/extension.js', 'language-configuration.json',
     'syntaxes/wkt.tmLanguage.json', 'assets/icon.png',
-    'assets/wkt-before-after.png', 'README.md']) {
+    'assets/wkt-before-after.png']) {
     assert.ok(existsSync(join(target.extensionPath, path)), 'VSIX omitted ' + path);
   }
 
   // Validate that the VS Code extension Details page has a resolvable image
   // reference and that the packaged PNG files have the expected signatures.
-  const readme = readFileSync(join(target.extensionPath, 'README.md'), 'utf8');
+  // VSIX packaging may normalize README.md to lowercase readme.md.
+  const readmePath = ['README.md', 'readme.md']
+    .map(name => join(target.extensionPath, name))
+    .find(path => existsSync(path));
+  assert.ok(readmePath, 'VSIX omitted README/readme markdown');
+  const readme = readFileSync(readmePath, 'utf8');
   assert.match(readme, /!\[[^\]]+\]\(assets\/wkt-before-after\.png\)/u);
   for (const png of ['assets/icon.png', 'assets/wkt-before-after.png']) {
     const data: Buffer = readFileSync(join(target.extensionPath, png));
