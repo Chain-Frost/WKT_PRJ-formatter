@@ -1,0 +1,26 @@
+{
+  "name": "WKT coordinate reference system",
+  "scopeName": "source.wkt",
+  "patterns": [
+    {
+      "name": "string.quoted.double.wkt",
+      "match": "\"(?:[^\"]|\"\")*\""
+    },
+    {
+      "name": "entity.name.function.wkt",
+      "match": "\\b[A-Za-z_][A-Za-z_0-9]*(?=\\s*[\\[(])"
+    },
+    {
+      "name": "constant.numeric.wkt",
+      "match": "(?<![A-Za-z_0-9])[-+]?(?:\\d+\\.?\\d*|\\.\\d+)(?:[eE][-+]?\\d+)?(?![A-Za-z_0-9])"
+    },
+    {
+      "name": "constant.language.wkt",
+      "match": "\\b(?:north|south|east|west|up|down|geocentricX|geocentricY|geocentricZ|Cartesian|ellipsoidal|spherical|vertical|temporal|ordinal|parametric|other|future|past|clockwise|counterClockwise)\\b"
+    },
+    {
+      "name": "punctuation.definition.wkt",
+      "match": "[\\[\\](),]"
+    }
+  ]
+}

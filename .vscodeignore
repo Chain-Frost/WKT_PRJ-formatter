@@ -1,0 +1,12 @@
+**/.git/**
+**/.github/**
+**/.vscode/**
+**/node_modules/**
+**/src/**
+**/fixtures/**
+**/out/test/**
+**/*.map
+**/.gitignore
+**/tsconfig.json
+**/eslint.config.mjs
+**/package-lock.json
