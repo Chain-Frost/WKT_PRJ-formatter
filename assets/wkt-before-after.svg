@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="392" viewBox="0 0 1180 392" role="img" aria-label="Before and after WKT formatting showing a single-line GDA94 CRS converted to GDAL-style hierarchical indentation, preserving all tokens.">
+<title>WKT formatter before and after</title>
+<rect width="1180" height="392" rx="16" fill="#0B1220"/>
+<rect x="18" y="20" width="557" height="350" rx="10" fill="#131F30" stroke="#32445C"/>
+<rect x="605" y="20" width="557" height="350" rx="10" fill="#131F30" stroke="#32445C"/>
+<text x="40" y="61" font-family="Arial,sans-serif" font-size="22" font-weight="bold" fill="#F9FBFF">Before</text>
+<text x="627" y="61" font-family="Arial,sans-serif" font-size="22" font-weight="bold" fill="#F9FBFF">After — GDAL / pyproj style</text>
+<line x1="35" y1="77" x2="558" y2="77" stroke="#314258"/>
+<line x1="622" y1="77" x2="1145" y2="77" stroke="#314258"/>
+<text x="40" y="105" font-family="Arial,sans-serif" font-size="13" fill="#94A9C2">One line of WKT (soft-wrapped for display)</text>
+<text x="627" y="105" font-family="Arial,sans-serif" font-size="13" fill="#94A9C2">Hierarchical formatting; CRS values unchanged</text>
+<text x="40" y="149" font-family="Consolas, Menlo, monospace" font-size="16" fill="#DDE6F3" xml:space="preserve">PROJCS[&quot;GDA94 / MGA zone 50&quot;,GEOGCS[&quot;GDA94&quot;,</text>
+<text x="40" y="180" font-family="Consolas, Menlo, monospace" font-size="16" fill="#DDE6F3" xml:space="preserve">DATUM[&quot;GDA94&quot;,SPHEROID[&quot;GRS 1980&quot;,6378137,</text>
+<text x="40" y="211" font-family="Consolas, Menlo, monospace" font-size="16" fill="#DDE6F3" xml:space="preserve">298.257222101]]],PARAMETER[&quot;false_easting&quot;,</text>
+<text x="40" y="242" font-family="Consolas, Menlo, monospace" font-size="16" fill="#DDE6F3" xml:space="preserve">500000]]</text>
+<text x="627" y="149" font-family="Consolas, Menlo, monospace" font-size="16" fill="#DDE6F3" xml:space="preserve">PROJCS[&quot;GDA94 / MGA zone 50&quot;,</text>
+<text x="627" y="180" font-family="Consolas, Menlo, monospace" font-size="16" fill="#DDE6F3" xml:space="preserve">    GEOGCS[&quot;GDA94&quot;,</text>
+<text x="627" y="211" font-family="Consolas, Menlo, monospace" font-size="16" fill="#DDE6F3" xml:space="preserve">        DATUM[&quot;GDA94&quot;,</text>
+<text x="627" y="242" font-family="Consolas, Menlo, monospace" font-size="16" fill="#DDE6F3" xml:space="preserve">            SPHEROID[&quot;GRS 1980&quot;,6378137,298.257222101]]],</text>
+<text x="627" y="273" font-family="Consolas, Menlo, monospace" font-size="16" fill="#DDE6F3" xml:space="preserve">    PARAMETER[&quot;false_easting&quot;,500000]]</text>
+<text x="40" y="345" font-family="Arial,sans-serif" font-size="12" fill="#94A9C2">.prj / WKT1 example</text>
+<text x="627" y="345" font-family="Arial,sans-serif" font-size="12" fill="#94A9C2">Four-space indentation</text>
+</svg>
