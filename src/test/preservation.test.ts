@@ -51,7 +51,7 @@ function tokens(source: string): string[] {
 test('independent oracle detects all significant mutations', () => {
   const source = 'ROOT["north [2]" ,AXIS["x",north],ID["EPSG",4326]]';
   assert.notDeepEqual(tokens(source), tokens(source.replace('4326', '4327')));
-  assert.notDeepEqual(tokens(source), tokens(source.replace('north,', 'south,')));
+  assert.notDeepEqual(tokens(source), tokens(source.replace('north]', 'south]')));
   assert.notDeepEqual(tokens(source), tokens(source.replace('AXIS[', 'AXIS(')));
   assert.deepEqual(tokens(source), tokens('ROOT["north [2]", AXIS["x",north], ID["EPSG",4326]]'));
 });
