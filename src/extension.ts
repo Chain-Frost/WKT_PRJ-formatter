@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { formatWkt, WktFormatError } from './formatter';
+import { findWktFolds } from './folding';
 
 function effectiveTabSize(value: number | string | undefined): number {
   return typeof value === 'number' && Number.isSafeInteger(value) && value > 0 ? value : 4;
@@ -24,6 +25,13 @@ export function activate(context: vscode.ExtensionContext): void {
   ];
 
   context.subscriptions.push(
+    vscode.languages.registerFoldingRangeProvider(selector, {
+      provideFoldingRanges(document): vscode.FoldingRange[] {
+        return findWktFolds(document.getText()).map(
+          range => new vscode.FoldingRange(range.start, range.end),
+        );
+      },
+    }),
     vscode.languages.registerDocumentFormattingEditProvider(selector, {
       provideDocumentFormattingEdits(document, options): vscode.TextEdit[] {
         const tabSize = effectiveTabSize(options.tabSize);
