@@ -63,10 +63,13 @@ export async function run(): Promise<void> {
   const editor = await vscode.window.showTextDocument(document, { preserveFocus: false, preview: false });
   editor.options = { insertSpaces: true, tabSize: 2 };
   await vscode.commands.executeCommand('wktPrjFormatter.formatDocument');
-  assert.equal(document.getText(), formatWkt(raw, { indent: '  ' }));
+  const eol = document.eol === vscode.EndOfLine.CRLF ? '\r\n' : '\n';
+  assert.equal(document.getText(), formatWkt(raw, { indent: '  ' }).replace(/\r\n|\n|\r/gu, eol));
   await vscode.commands.executeCommand('undo');
   assert.equal(document.getText(), raw, 'Installed explicit command must be undoable in one action');
 
+  // Reformat once more after undo to create multiline nodes for folding.
+  await vscode.commands.executeCommand('wktPrjFormatter.formatDocument');
   const folds = await vscode.commands.executeCommand<vscode.FoldingRange[]>(
     'vscode.executeFoldingRangeProvider', document.uri,
   );
