@@ -18,7 +18,7 @@ test('GDAL-style WKT1 retains literal numbers and leaf elements', () => {
 test('GDAL-style WKT2 nests elements while preserving scalar spelling', () => {
   const output = formatWkt(wkt2);
   assert.match(output, /^PROJCRS\["GDA94 \/ MGA zone 50",\n/u);
-  assert.ok(output.includes('ID["EPSG",32750]'));
+  assert.ok(output.includes('ID["EPSG",28350]'));
   assert.ok(output.includes('SCALEUNIT["unity",1]'));
   assert.ok(output.includes('BBOX[-38.53,114,-12.06,120.01]'));
   assert.equal(formatWkt(output), output);
