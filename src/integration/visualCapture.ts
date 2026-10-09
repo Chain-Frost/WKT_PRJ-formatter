@@ -30,6 +30,21 @@ export async function captureVisualEvidence(directory: string): Promise<void> {
   await editorConfig.update('wordWrap', 'on', vscode.ConfigurationTarget.Global);
   await editorConfig.update('minimap.enabled', false, vscode.ConfigurationTarget.Global);
   await vscode.commands.executeCommand('workbench.action.closeAllEditors');
+  // Test errors triggered elsewhere in the host can leave transient warning
+  // notifications on the screenshots. Hide auxiliary UI as this comparison is
+  // about WKT formatting and syntax colour, not VS Code tool panels.
+  for (const command of [
+    'notifications.clearAll',
+    'workbench.action.closeAuxiliaryBar',
+    'workbench.action.closeSideBar',
+    'workbench.action.closePanel',
+  ]) {
+    try {
+      await vscode.commands.executeCommand(command);
+    } catch {
+      // Some optional workbench commands differ between VS Code versions.
+    }
+  }
 
   for (const [theme, file] of [
     ['Default Dark Modern', 'wkt-before-after-dark.png'],
