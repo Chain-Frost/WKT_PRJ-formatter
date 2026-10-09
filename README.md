@@ -27,7 +27,9 @@ Example VS Code settings:
 }
 ```
 
-Respects the active editor's indentation width or tabs. Preserves existing LF/CRLF newline style, any UTF-8 BOM, optional final newline, doubled quote escaping (as specified by WKT), keyword spelling, number precision and nested bracket style. Formatting is idempotent.
+Respects the active editor's indentation width or tabs. For tabs, visual line-width calculations use the editor's effective tab size (for example 2, 4, or 8); the tab characters themselves are preserved. Direct calls to `formatWkt()` default to a visual tab size of 4. Preserves existing LF/CRLF newline style, any UTF-8 BOM, optional final newline, doubled quote escaping (as specified by WKT), keyword spelling, number precision and nested bracket style. Formatting is idempotent.
+
+The extension supports **Restricted Mode (untrusted workspaces)**. It only formats open document text and does not execute project code or external programs. To check manually, open a fresh folder in VS Code, choose **Don't Trust** at the trust prompt (or use **Workspaces: Manage Workspace Trust** to set the folder as untrusted), confirm the window indicates Restricted Mode, then open a `.prj` file and test both **Format Document** and **WKT / PRJ: Format WKT / PRJ**. Both actions should format WKT without requiring trust. This check is manual until an Extension Host integration harness is available.
 
 ### Example WKT1
 
@@ -59,14 +61,20 @@ PROJCS[
 Requires Node.js 22 and VS Code 1.85 or later.
 
 ```sh
-npm install
+npm install --no-audit --no-fund
 npm run check
 npm run package:vsix
 ```
 
-Press **F5** to launch an Extension Development Host. `npm test` runs parser/formatter unit tests without a GUI. CI checks compilation, ESLint, unit tests and VSIX packaging.
+Press **F5** to launch an Extension Development Host. `npm test` runs the GUI-free formatter/unit suites, including an independent token-preservation oracle, tab-size boundaries, deep nesting, Unicode, and CRLF/file-path tests. CI runs ESLint, compilation and tests on both `ubuntu-latest` and `windows-latest`. The Windows job exercises real Windows filesystem paths and CRLF fixtures. A single Ubuntu packaging job starts **only after both platforms pass**, runs validation again, and uploads one VSIX. VS Code Extension Host tests and packaged-install smoke tests remain future work.
 
-To install without building locally, download the `wkt-prj-formatter-vsix` artifact from a successful GitHub Actions CI run, extract the `.vsix`, then select **Extensions → ... → Install from VSIX** in VS Code.
+### Build and install from GitHub Actions
+
+After this workflow has been merged into the default branch, open **GitHub → Actions → CI → Run workflow** and choose the branch/ref. Manual dispatch executes the same checks and packaging as ordinary pushes and PRs. `Run workflow` appears only when the workflow with `workflow_dispatch` exists on the default branch.
+
+When the run succeeds, open its **Artifacts** section, download **`wkt-prj-formatter-vsix`**, and extract the ZIP containing the `.vsix`. In VS Code choose **Extensions → … → Install from VSIX**, select the extracted file and reload if prompted.
+
+No Node.js, TypeScript, or Docker is needed on the machine **installing** this prebuilt extension. Build dependencies (including the project-local TypeScript compiler) are installed by the GitHub runner.
 
 ## Design constraints
 
