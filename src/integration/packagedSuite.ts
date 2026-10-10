@@ -18,7 +18,9 @@ export async function run(): Promise<void> {
   for (const path of ['out/extension.js', 'language-configuration.json',
     'syntaxes/wkt.tmLanguage.json', 'assets/icon.png',
     'assets/screenshots/wkt-before-after-dark.png',
-    'assets/screenshots/wkt-before-after-light.png']) {
+    'assets/screenshots/wkt-before-after-light.png',
+    'docs/formatting.md', 'docs/development.md',
+    'docs/standards.md', 'docs/releases.md']) {
     assert.ok(existsSync(join(target.extensionPath, path)), 'VSIX omitted ' + path);
   }
 
