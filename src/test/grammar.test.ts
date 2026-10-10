@@ -134,3 +134,43 @@ test('shipped grammar highlights standalone PROJ keys, numbers and quoted values
     }
   }
 });
+
+
+test('PROJ DMS degree-minute-second punctuation is not treated as quoted text', async () => {
+  const grammar = await packagedGrammar();
+  const input = '+proj=longlat +pm=17d40\'W +lat_0=3d41\'14.55"W +title="quoted value" +note=\'two words\' +lon_0=90d';
+  const { tokens } = grammar.tokenizeLine(input, null);
+  for (const needle of ["17d40'W", "3d41'14.55\"W", '+lon_0']) {
+    notScoped(tokens, input, needle, [
+      'string.quoted.double.proj.wkt', 'string.quoted.single.proj.wkt',
+    ]);
+  }
+  scoped(tokens, input, '+lon_0', 'variable.parameter.proj.wkt');
+  scoped(tokens, input, 'quoted value', 'string.quoted.double.proj.wkt');
+  scoped(tokens, input, 'two words', 'string.quoted.single.proj.wkt');
+});
+
+test('PROJ quoted escapes do not end the string prematurely', async () => {
+  const grammar = await packagedGrammar();
+  const input = String.raw`+proj=longlat +title="escaped \"quote\" inside" +zone=50`;
+  const { tokens } = grammar.tokenizeLine(input, null);
+  scoped(tokens, input, 'escaped ', 'string.quoted.double.proj.wkt');
+  scoped(tokens, input, 'quote', 'string.quoted.double.proj.wkt');
+  scoped(tokens, input, 'inside', 'string.quoted.double.proj.wkt');
+  scoped(tokens, input, '+zone', 'variable.parameter.proj.wkt');
+});
+
+test('WKT multiline quoted values retain string scopes through closing quotation', async () => {
+  const grammar = await packagedGrammar();
+  const first = 'GEOGCRS["first line [AXIS(123)]';
+  const second = 'north ""quoted"" text",DATUM["D"]]';
+  const a = grammar.tokenizeLine(first, null);
+  scoped(a.tokens, first, 'AXIS', 'string.quoted.double.wkt');
+  notScoped(a.tokens, first, '123', ['constant.numeric.wkt']);
+  const b = grammar.tokenizeLine(second, a.ruleStack);
+  scoped(b.tokens, second, 'north', 'string.quoted.double.wkt');
+  scoped(b.tokens, second, 'quoted', 'string.quoted.double.wkt');
+  notScoped(b.tokens, second, 'north', ['constant.language.wkt']);
+  scoped(b.tokens, second, 'DATUM', 'entity.name.function.wkt');
+  scoped(b.tokens, second, '"D"', 'string.quoted.double.wkt');
+});

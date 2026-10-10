@@ -9,25 +9,27 @@
       "patterns": [
         {
           "name": "string.quoted.double.proj.wkt",
-          "begin": "\"",
+          "begin": "(?<==)\"",
           "end": "\"",
           "patterns": [
             {
               "name": "constant.character.escape.proj.wkt",
               "match": "\\\\."
             }
-          ]
+          ],
+          "applyEndPatternLast": true
         },
         {
           "name": "string.quoted.single.proj.wkt",
-          "begin": "'",
+          "begin": "(?<==)'",
           "end": "'",
           "patterns": [
             {
               "name": "constant.character.escape.proj.wkt",
               "match": "\\\\."
             }
-          ]
+          ],
+          "applyEndPatternLast": true
         },
         {
           "name": "variable.parameter.proj.wkt",
@@ -45,7 +47,14 @@
     },
     {
       "name": "string.quoted.double.wkt",
-      "match": "\"(?:[^\"]|\"\")*\""
+      "begin": "\"",
+      "end": "\"(?!\")",
+      "patterns": [
+        {
+          "name": "constant.character.escape.wkt",
+          "match": "\"\""
+        }
+      ]
     },
     {
       "name": "entity.name.function.wkt",
