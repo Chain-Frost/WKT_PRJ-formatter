@@ -2,7 +2,7 @@
   "name": "wkt-prj-formatter",
   "displayName": "WKT / PRJ Formatter",
   "publisher": "Chain-Frost",
-  "description": "Readable, lossless WKT1 and WKT2 formatting for GIS .prj and .wkt files.",
+  "description": "Readable, lossless WKT1, WKT2 and PROJ parameter-string formatting for GIS .prj and .wkt files.",
   "version": "0.2.0",
   "license": "MIT",
   "repository": {
@@ -24,6 +24,8 @@
     "wkt",
     "wkt2",
     "wkt1",
+    "proj4",
+    "proj",
     "prj",
     "coordinate reference system",
     "projection",

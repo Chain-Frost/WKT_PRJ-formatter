@@ -1,5 +1,7 @@
 import * as vscode from 'vscode';
-import { formatWkt, WktFormatError } from './formatter';
+import { WktFormatError } from './formatter';
+import { formatDefinition } from './definition';
+import { ProjFormatError } from './proj-formatter';
 import { findWktFolds } from './folding';
 
 function effectiveTabSize(value: number | string | undefined): number {
@@ -7,7 +9,7 @@ function effectiveTabSize(value: number | string | undefined): number {
 }
 
 function formatted(document: vscode.TextDocument, indent: string): string {
-  return formatWkt(document.getText(), { indent });
+  return formatDefinition(document.getText(), { indent });
 }
 
 function fullRange(document: vscode.TextDocument): vscode.Range {
@@ -41,8 +43,8 @@ export function activate(context: vscode.ExtensionContext): void {
           }
           return [vscode.TextEdit.replace(fullRange(document), result)];
         } catch (error) {
-          if (error instanceof WktFormatError) {
-            // Unsupported/non-WKT PRJ and malformed WKT are left unchanged.
+          if (error instanceof WktFormatError || error instanceof ProjFormatError) {
+            // Malformed or unsupported WKT/PROJ inputs are left unchanged.
             return [];
           }
           throw error;
@@ -65,7 +67,7 @@ export function activate(context: vscode.ExtensionContext): void {
         try {
           result = formatted(editor.document, indent);
         } catch (error) {
-          if (error instanceof WktFormatError) {
+          if (error instanceof WktFormatError || error instanceof ProjFormatError) {
             void vscode.window.showWarningMessage('WKT / PRJ Formatter: ' + error.message);
             return;
           }

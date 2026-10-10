@@ -116,3 +116,21 @@ test('formatted multiline WKT1 and WKT2 use the shipped grammar and stable scope
     }
   }
 });
+
+test('shipped grammar highlights standalone PROJ keys, numbers and quoted values', async () => {
+  const grammar = await packagedGrammar();
+  for (const input of [
+    '+proj=utm +zone=50 +south +title="zone 50"',
+    '    +k=0.9996 +note=\'two words\'',
+  ]) {
+    const { tokens } = grammar.tokenizeLine(input, null);
+    const name = input.includes('+proj=') ? '+proj' : '+k';
+    scoped(tokens, input, name, 'variable.parameter.proj.wkt');
+    scoped(tokens, input, '=', 'keyword.operator.assignment.proj.wkt');
+    if (input.includes('zone 50')) {
+      scoped(tokens, input, 'zone 50', 'string.quoted.double.proj.wkt');
+    } else {
+      scoped(tokens, input, 'two words', 'string.quoted.single.proj.wkt');
+    }
+  }
+});
