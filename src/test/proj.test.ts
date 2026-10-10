@@ -14,7 +14,8 @@ function simpleParameters(source: string): string[] {
 
 test('EPSG:28350 PROJ.4 PRJ fixture formats without changing ordered parameters', () => {
   const result = formatDefinition(fixture);
-  assert.equal(result, simpleParameters(fixture).join('\n') + '\n');
+  const eol = fixture.match(/\r\n|\n|\r/u)?.[0] ?? '\n';
+  assert.equal(result, simpleParameters(fixture).join(eol) + eol);
   assert.deepEqual(simpleParameters(result), simpleParameters(fixture));
   assert.equal(formatDefinition(result), result);
 });
