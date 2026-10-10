@@ -32,6 +32,11 @@ function tokenizeProj(source: string): Parameter[] {
       continue;
     }
     const start = offset;
+    // PROJ DMS scalars use literal minute/second marks (e.g. 17d40'W).
+    // Only a quotation mark at the start of a parameter value opens a
+    // quoted value; marks inside unquoted values are ordinary scalar data.
+    const equals = source.indexOf('=', start);
+    const valueStart = equals < 0 ? -1 : equals + 1;
     let quote: '"' | "'" | undefined;
     while (offset < source.length) {
       const current = source[offset] ?? '';
@@ -43,10 +48,10 @@ function tokenizeProj(source: string): Parameter[] {
         continue;
       }
       if (current === '"' || current === "'") {
-        if (quote === undefined) {
-          quote = current;
-        } else if (quote === current) {
+        if (quote === current) {
           quote = undefined;
+        } else if (quote === undefined && offset === valueStart) {
+          quote = current;
         }
         offset += 1;
         continue;
