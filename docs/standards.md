@@ -24,6 +24,10 @@ Syntax specifications are distinct from the source of any particular CRS definit
   parameter is placed on its own line. Never sort, deduplicate, convert,
   round or rewrite values. Both single- and double-quoted values and
   backslash-escaped spaces are retained byte-for-byte.
+  Quoted values begin with a quote immediately after the equals sign;
+  apostrophes and double-quote marks within unquoted PROJ degree-minute-second
+  (DMS) angle notation are literal scalar characters, not quote delimiters.
+  See the [PROJ angle/units rules](https://proj.org/en/stable/usage/projections.html#units).
 - PROJ pipelines: +proj=pipeline must be the first parameter and contain
   at least one +step. Each +step begins a nonempty group. Indent step parameters;
   leave parameters before the first +step global and preserve every step boundary
