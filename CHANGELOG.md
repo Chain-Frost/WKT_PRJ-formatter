@@ -4,10 +4,21 @@ Notable changes to the WKT / PRJ Formatter extension are recorded here. This doc
 
 ## Unreleased
 
+## [0.3.0] - 2026-10-10
+
 ### Added
 - Standalone PROJ parameter-string formatting, including `.prj` files, quoted/escaped values and explicit pipeline step grouping (#14). Both editor formatting entry points dispatch by content and preserve complete parameter tokens.
 - Primary OGC/ISO, PROJ, EPSG and Esri reference links and documented syntax/formatting scope in `docs/standards.md`.
 - GUI-free PROJ preservation, rejection, boundary and idempotence tests plus editor integration coverage.
+
+### Fixed
+- PROJ syntax highlighting distinguishes quoted values from degree-minute-second apostrophes and second marks.
+- Multiline WKT quoted-string syntax highlighting retains string scopes across line breaks and doubled quotes.
+
+### Maintenance
+- Require release tags to point to commits included in main's history.
+- Expand independent PROJ token-preservation tests for quoted values, escaped spaces, DMS and pipelines.
+- Refresh README, example fixture and release documentation.
 
 ## [0.2.0] - 2026-10-10
 
