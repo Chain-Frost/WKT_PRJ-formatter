@@ -157,7 +157,7 @@ function independentProjParameters(source: string): string[] {
 test('complete PROJ tokens survive formatting with quoted and escaped values, DMS and duplicates', () => {
   const input = "+proj=longlat +title=\"A B \\\"label\\\"\" +note='two words' +escaped=two\\ words +pm=17d40'W +lat_0=3d41'14.55\"W +zone=050 +zone=050";
   const expected = independentProjParameters(input);
-  assert.equal(expected.length, 9);
+  assert.equal(expected.length, 8);
   for (const indent of ['  ', '    ', '\t']) {
     const formatted = formatDefinition(input, { indent });
     assert.deepEqual(independentProjParameters(formatted), expected);
