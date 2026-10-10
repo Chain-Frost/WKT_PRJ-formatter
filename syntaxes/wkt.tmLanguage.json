@@ -3,6 +3,47 @@
   "scopeName": "source.wkt",
   "patterns": [
     {
+      "name": "meta.proj-parameters.wkt",
+      "begin": "^\\s*(?=\\+)",
+      "end": "$",
+      "patterns": [
+        {
+          "name": "string.quoted.double.proj.wkt",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.proj.wkt",
+              "match": "\\\\."
+            }
+          ]
+        },
+        {
+          "name": "string.quoted.single.proj.wkt",
+          "begin": "'",
+          "end": "'",
+          "patterns": [
+            {
+              "name": "constant.character.escape.proj.wkt",
+              "match": "\\\\."
+            }
+          ]
+        },
+        {
+          "name": "variable.parameter.proj.wkt",
+          "match": "\\+[A-Za-z_][A-Za-z_0-9]*(?==|\\s|$)"
+        },
+        {
+          "name": "keyword.operator.assignment.proj.wkt",
+          "match": "="
+        },
+        {
+          "name": "constant.numeric.proj.wkt",
+          "match": "(?<![A-Za-z_0-9])[-+]?(?:\\d+\\.?\\d*|\\.\\d+)(?:[eE][-+]?\\d+)?(?![A-Za-z_0-9])"
+        }
+      ]
+    },
+    {
       "name": "string.quoted.double.wkt",
       "match": "\"(?:[^\"]|\"\")*\""
     },

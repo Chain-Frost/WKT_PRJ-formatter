@@ -2,6 +2,7 @@ import { strict as assert } from 'node:assert';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
 import * as vscode from 'vscode';
+import { formatDefinition } from '../definition';
 import { formatWkt } from '../formatter';
 import { captureVisualEvidence } from './visualCapture';
 
@@ -56,11 +57,12 @@ export async function run(): Promise<void> {
   console.log('Integration: actual WKT file extensions, activation and formatting');
   for (const filename of [
     'gda94-mga-zone50.prj', 'gda94-mga-zone50-ogc.wkt', 'gda94-mga-zone50.wkt2',
+    'gda94-mga-zone50-proj4.prj',
   ]) {
     const editor = await openFixture(filename);
     await waitForNaturalActivation();
     const original = editor.document.getText();
-    const expected = formatWkt(original, { indent: '    ' });
+    const expected = formatDefinition(original, { indent: '    ' });
     await applyProvider(editor.document);
     assert.equal(editor.document.getText(), expected, 'Provider output differs: ' + filename);
     assert.deepEqual(await providerEdits(editor.document), [], 'Provider must be idempotent');
@@ -84,13 +86,22 @@ export async function run(): Promise<void> {
   assert.deepEqual(await providerEdits(editor.document, 8, false), []);
 
   console.log('Integration: malformed and unsupported inputs stay unchanged');
-  for (const [index, unsupported] of ['+proj=utm +zone=50 +south', 'GEOGCS["unterminated]'].entries()) {
+  for (const [index, unsupported] of ['+proj=utm +zone=50 invalid', 'GEOGCS["unterminated]'].entries()) {
     // VS Code caches open documents by URI; each case needs its own file name.
     const malformed = await openFixture('invalid-' + index + '.prj', unsupported);
     assert.deepEqual(await providerEdits(malformed.document), []);
     await vscode.commands.executeCommand('wktPrjFormatter.formatDocument');
     assert.equal(malformed.document.getText(), unsupported);
   }
+
+  console.log('Integration: explicit command formats PROJ content in a PRJ file');
+  const projRaw = '+proj=utm +zone=50 +south +datum=WGS84 +units=m +no_defs';
+  const projEditor = await openFixture('explicit-proj.prj', projRaw);
+  await vscode.window.showTextDocument(projEditor.document, { preserveFocus: false, preview: false });
+  await vscode.commands.executeCommand('wktPrjFormatter.formatDocument');
+  assert.equal(projEditor.document.getText(), asDocumentEol(formatDefinition(projRaw), projEditor.document));
+  await vscode.commands.executeCommand('undo');
+  assert.equal(projEditor.document.getText(), projRaw, 'PROJ formatting must undo as one edit');
 
   console.log('Integration: bracket folding provider for nested WKT');
   const nested = await openFixture('fold.wkt2', raw);

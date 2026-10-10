@@ -3,6 +3,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import * as vscode from 'vscode';
 import { formatWkt } from '../formatter';
+import { formatDefinition } from '../definition';
 
 export async function run(): Promise<void> {
   const id = 'Chain-Frost.wkt-prj-formatter';
@@ -46,8 +47,9 @@ export async function run(): Promise<void> {
 
   const directory = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
   assert.ok(directory, 'Smoke runner requires an isolated workspace');
-  for (const name of ['reference.prj', 'reference.wkt', 'reference.wkt2']) {
-    const sourceName = name.endsWith('.prj') ? 'gda94-mga-zone50.prj'
+  for (const name of ['reference.prj', 'reference.wkt', 'reference.wkt2', 'reference-proj4.prj']) {
+    const sourceName = name === 'reference-proj4.prj' ? 'gda94-mga-zone50-proj4.prj'
+      : name.endsWith('.prj') ? 'gda94-mga-zone50.prj'
       : name.endsWith('.wkt2') ? 'gda94-mga-zone50.wkt2'
       : 'gda94-mga-zone50-ogc.wkt';
     const source = readFileSync(join(root, 'fixtures', sourceName), 'utf8');
@@ -72,7 +74,7 @@ export async function run(): Promise<void> {
       edit.replace(uri, value.range, value.newText);
     }
     assert.ok(await vscode.workspace.applyEdit(edit));
-    assert.equal(document.getText(), formatWkt(source, { indent: '    ' }));
+    assert.equal(document.getText(), formatDefinition(source, { indent: '    ' }));
     assert.deepEqual((await vscode.commands.executeCommand<vscode.TextEdit[]>(
       'vscode.executeFormatDocumentProvider', uri, { insertSpaces: true, tabSize: 4 })) ?? [], []);
   }
