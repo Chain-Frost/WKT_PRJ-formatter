@@ -18,7 +18,8 @@ Notable changes to the WKT / PRJ Formatter extension are recorded here. This doc
 ### Maintenance
 - Require release tags to point to commits included in main's history.
 - Expand independent PROJ token-preservation tests for quoted values, escaped spaces, DMS and pipelines.
-- Refresh README, example fixture and release documentation.
+- Simplify README to quick installation and usage instructions; move detailed formatter/editor and development guidance into `docs/formatting.md` and `docs/development.md`.
+- Refresh example fixture and release documentation; verify documentation files are included in the tested VSIX.
 
 ## [0.2.0] - 2026-10-10
 
