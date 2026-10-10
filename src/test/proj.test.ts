@@ -114,3 +114,64 @@ test('PROJ respects the WKT indentation-setting contract', () => {
     assert.throws(() => formatProj('+proj=utm +zone=50', { indent }), /Indent must contain/u);
   }
 });
+
+
+/**
+ * Independent PROJ lexical preservation oracle. Unlike the production parser,
+ * it only discovers parameter boundaries without interpreting projection
+ * operations, pipeline grouping or the validity of individual keys.
+ */
+function independentProjParameters(source: string): string[] {
+  const parameters: string[] = [];
+  let index = source.startsWith('\uFEFF') ? 1 : 0;
+  while (index < source.length) {
+    if (/\s/u.test(source[index] ?? '')) {
+      index += 1;
+      continue;
+    }
+    const start = index;
+    let quoted: '"' | "'" | undefined;
+    while (index < source.length) {
+      const character = source[index] ?? '';
+      if (character === '\\' && index + 1 < source.length) {
+        index += 2;
+        continue;
+      }
+      if (character === '"' || character === "'") {
+        if (quoted === character) {
+          quoted = undefined;
+        } else if (quoted === undefined && source[index - 1] === '=') {
+          quoted = character;
+        }
+      }
+      if (quoted === undefined && /\s/u.test(character)) {
+        break;
+      }
+      index += 1;
+    }
+    parameters.push(source.slice(start, index));
+  }
+  return parameters;
+}
+
+test('complete PROJ tokens survive formatting with quoted and escaped values, DMS and duplicates', () => {
+  const input = "+proj=longlat +title=\"A B \\\"label\\\"\" +note='two words' +escaped=two\\ words +pm=17d40'W +lat_0=3d41'14.55\"W +zone=050 +zone=050";
+  const expected = independentProjParameters(input);
+  assert.equal(expected.length, 9);
+  for (const indent of ['  ', '    ', '\t']) {
+    const formatted = formatDefinition(input, { indent });
+    assert.deepEqual(independentProjParameters(formatted), expected);
+    assert.equal(formatted, expected.join('\n'));
+    assert.equal(formatDefinition(formatted, { indent }), formatted);
+  }
+});
+
+test('complete pipeline parameter tokens survive step indentation and CRLF', () => {
+  const input = '\uFEFF+proj=pipeline\r\n+ellps=GRS80 +step +proj=merc +title="two words"' +
+    '\r\n+step +inv +proj=axisswap +order=2,1\r\n';
+  const before = independentProjParameters(input);
+  const formatted = formatDefinition(input, { indent: '\t' });
+  assert.deepEqual(independentProjParameters(formatted), before);
+  assert.ok(formatted.includes('\r\n+step\r\n\t+proj=merc'));
+  assert.equal(formatDefinition(formatted, { indent: '\t' }), formatted);
+});
