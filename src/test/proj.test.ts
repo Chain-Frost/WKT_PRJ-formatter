@@ -48,6 +48,14 @@ test('literal PROJ tokens inside WKT quoted strings are never transformed', () =
   assert.equal(formatDefinition(output), output);
 });
 
+test('DMS apostrophe and second marks remain unquoted scalar data', () => {
+  // Literal DMS punctuation documented by PROJ, not string quote delimiters.
+  const source = "+proj=longlat +pm=17d40'W +lat_0=3d41'14.55\"W +lon_0=90d";
+  const result = formatDefinition(source);
+  assert.equal(result, simpleParameters(source).join('\n'));
+  assert.equal(formatDefinition(result), result);
+});
+
 test('BOM, newline conventions and final-newline policy are stable', () => {
   for (const eol of ['\n', '\r\n', '\r']) {
     for (const terminal of ['', eol]) {
